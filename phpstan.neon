@@ -1,0 +1,24 @@
+parameters:
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    tmpDir: tmp/
+    paths:
+        - src/
+        - tests/
+    autoload_files:
+        - vendor/autoload.php
+    bootstrap:
+        tests/bootstrap.php
+    ignoreErrors:
+        -
+            message: '#Variable method call on (.*)#'
+            path: src/Builder/QueryBuilder.php
+        -
+            message: '#Variable property access on (.*)#'
+            path: src/Dto/Field.php
+        -
+            message: '#Variable method call on (.*)#'
+            path: src/Dto/AbstractDto.php
+        -
+            message: '#Variable property access on (.*)#'
+            path: src/Dto/AbstractDto.php

@@ -1,0 +1,62 @@
+{
+    "name": "atlance/http-doctrine-filter",
+    "homepage": "https://github.com/atlance/http-doctrine-filter",
+    "license": "MIT",
+    "description": "doctrine orm dynamic filter from http query and used symfony/validator for validation",
+    "type": "library",
+    "keywords": [
+        "doctrine",
+        "doctrine-orm",
+        "doctrine orm dynamic filter",
+        "symfony",
+        "symfony validator",
+        "symfony validation for http query"
+    ],
+    "authors": [
+        {
+            "name": "Anton Stepanov",
+            "email": "lanposts@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^7.4",
+        "doctrine/orm": "^2",
+        "symfony/validator": "^5.0",
+        "webmozart/assert": "^1.6"
+    },
+    "require-dev": {
+        "phpstan/extension-installer": "^1.0",
+        "phpstan/phpstan": "^0.12.8",
+        "phpstan/phpstan-deprecation-rules": "^0.12.2",
+        "phpstan/phpstan-phpunit": "^0.12.6",
+        "phpstan/phpstan-strict-rules": "^0.12.2",
+        "phpunit/phpunit": "^8.5",
+        "vimeo/psalm": "^3.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "Atlance\\HttpDoctrineFilter\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Atlance\\HttpDoctrineFilter\\Test\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit --testsuite=http-doctrine-filter",
+        "phpstan": "vendor/bin/phpstan analyse src -c phpstan.neon --level max --no-progress",
+        "psalm": "vendor/bin/psalm --shepherd",
+        "all": [
+            "@test",
+            "@phpstan",
+            "@psalm"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "platform": {
+            "php": "7.4"
+        }
+    }
+}
