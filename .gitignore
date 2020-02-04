@@ -1,0 +1,16 @@
+/*
+!/docs/
+!/src/
+!/tests/
+!/storage/
+
+!/.gitattributes
+!/.gitignore
+!/composer.json
+!/phpunit.xml.dist
+!/.travis.yml
+!/.scrutinizer.yml
+!/psalm.xml
+!/phpstan.neon
+!/README.md
+!/LICENSE.md

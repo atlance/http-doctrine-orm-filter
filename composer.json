@@ -1,0 +1,71 @@
+{
+    "name": "atlance/http-doctrine-orm-filter",
+    "homepage": "https://github.com/atlance/http-doctrine-orm-filter",
+    "license": "MIT",
+    "description": "doctrine orm dynamic filter from http query and used symfony/validator for validation",
+    "type": "library",
+    "keywords": [
+        "doctrine",
+        "doctrine-orm",
+        "doctrine orm dynamic filter",
+        "symfony",
+        "symfony validator",
+        "symfony validation for http query"
+    ],
+    "authors": [
+        {
+            "name": "Anton Stepanov",
+            "email": "lanposts@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "doctrine/orm": "^2.7",
+        "psr/simple-cache": "^3.0",
+        "symfony/validator": "^6.2",
+        "webmozart/assert": "^1.9"
+    },
+    "require-dev": {
+        "ext-curl": "*",
+        "ext-dom": "*",
+        "ext-memcached": "^3.2",
+        "ext-sqlite3": "*",
+        "doctrine/annotations": "^2.0",
+        "phpstan/extension-installer": "^1.1",
+        "phpstan/phpstan": "^1.6",
+        "phpstan/phpstan-deprecation-rules": "^1.0.0",
+        "phpstan/phpstan-phpunit": "^1.1",
+        "phpstan/phpstan-strict-rules": "^1.2",
+        "phpunit/phpunit": "^9.5",
+        "symfony/cache": "^6.2",
+        "vimeo/psalm": "^4.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Atlance\\HttpDoctrineOrmFilter\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Atlance\\HttpDoctrineOrmFilter\\Test\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-html coverage",
+        "phpstan": "vendor/bin/phpstan analyse --no-progress",
+        "psalm": "vendor/bin/psalm --shepherd",
+        "analyze": ["@phpstan", "@psalm"],
+        "all": ["@analyze", "@test"]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": {
+            "*": "dist"
+        },
+        "sort-packages": true,
+        "process-timeout": 0,
+        "allow-plugins": {
+            "phpstan/extension-installer": false
+        }
+    }
+}
