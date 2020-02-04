@@ -1,0 +1,19 @@
+parameters:
+    level: 8
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    tmpDir: var/analyze
+    fileExtensions:
+        - php
+    paths:
+        - src
+        - tests
+    excludePaths:
+        - vendor
+        - tests/bootstrap.php
+    bootstrapFiles:
+        - tests/bootstrap.php
+    ignoreErrors:
+        -
+            message: '#Property (.*) is unused.#'
+            path: tests/Model/
