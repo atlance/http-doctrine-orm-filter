@@ -31,13 +31,6 @@ final class ValidatorFacade
         return $this;
     }
 
-    public function setValidator(ValidatorInterface $validator): self
-    {
-        $this->validator = $validator;
-
-        return $this;
-    }
-
     public function validatePropertyValue(string $key, string $className, string $fieldName, array $fieldValues): array
     {
         $violations = [];

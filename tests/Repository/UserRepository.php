@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Atlance\HttpDoctrineFilter\Test\Repository;
 
+use Atlance\HttpDoctrineFilter\Dto\QueryConfiguration;
 use Atlance\HttpDoctrineFilter\Filter;
 use Atlance\HttpDoctrineFilter\Test\Model\Passport;
+use Atlance\HttpDoctrineFilter\Test\Model\User;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Query\Expr\Join;
-use Symfony\Component\Validator\Validation;
 
 class UserRepository extends EntityRepository
 {
@@ -17,27 +18,21 @@ class UserRepository extends EntityRepository
 
     public function setFilter(Filter $filter): self
     {
-        $validator = Validation::createValidatorBuilder()->enableAnnotationMapping()->getValidator();
-        $this->filter = $filter->setValidator($validator)->setValidationGroups(['test']);
+        $this->filter = $filter->setValidationGroups(['test']);
 
         return $this;
     }
 
     public function findByConditions(array $conditions = [])
     {
-        $qb = $this->createQueryBuilder('users')
+        $qb = $this->filter->createQueryBuilder()
             ->select('COUNT(DISTINCT(users.id))')
+            ->from(User::class, 'users')
             ->leftJoin('users.cards', 'cards', Join::WITH)
             ->leftJoin('users.phones', 'phones', Join::WITH)
             ->leftJoin(Passport::class, 'passport', Join::WITH, 'users.id = passport.user')
         ;
 
-        return $this->filter->setOrmQueryBuilder($qb)
-            ->selectBy($conditions['filter'] ?? [])
-            ->orderBy($conditions['order'] ?? [])
-            ->getOrmQueryBuilder()
-            ->getQuery()
-            ->getSingleScalarResult()
-        ;
+        return $this->filter->apply($qb, new QueryConfiguration($conditions))->getSingleScalarResult();
     }
 }

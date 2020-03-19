@@ -33,7 +33,6 @@
         <MissingClosureParamType>
             <errorLevel type="suppress">
                 <file name="src/Filter.php" />
-                <file name="src/Utils/HttpUriParser.php" />
             </errorLevel>
         </MissingClosureParamType>
 
@@ -44,7 +43,7 @@
 
         <PropertyNotSetInConstructor>
             <errorLevel type="suppress">
-                <file name="src/Dto/Field.php" />
+                <file name="src/Dto/QueryField.php" />
             </errorLevel>
         </PropertyNotSetInConstructor>
 

@@ -14,11 +14,11 @@ parameters:
             message: '#Variable method call on (.*)#'
             path: src/Builder/QueryBuilder.php
         -
-            message: '#Variable property access on (.*)#'
-            path: src/Dto/Field.php
-        -
             message: '#Variable method call on (.*)#'
             path: src/Dto/AbstractDto.php
         -
             message: '#Variable property access on (.*)#'
             path: src/Dto/AbstractDto.php
+        -
+            message: '#Variable property access on (.*)#'
+            path: src/Dto/QueryField.php

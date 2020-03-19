@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Atlance\HttpDoctrineFilter\Test\Acceptance;
 
-use Atlance\HttpDoctrineFilter\Dto\HttpDoctrineFilterRequest;
+use Atlance\HttpDoctrineFilter\Dto\QueryConfiguration;
 use Atlance\HttpDoctrineFilter\Filter;
 use Doctrine\ORM\QueryBuilder as OrmQueryBuilder;
 use InvalidArgumentException;
@@ -29,7 +29,7 @@ class FilterTest extends TestCase
 
     public function testCreateFilter()
     {
-        $this->assertTrue($this->getFilter() instanceof Filter);
+        $this->assertTrue($this->createClearFilter() instanceof Filter);
     }
 
     /**
@@ -38,7 +38,7 @@ class FilterTest extends TestCase
     public function testBetween()
     {
         // multiple integer
-        $this->assertCountByHttpQuery(self::BETWEEN.'[users_id]=1|3', 3);
+        $this->assertCountByHttpQuery(self::BETWEEN.'[users_id]=1|3&order[users_id]=asc', 3);
         // multiple datetime
         $this->assertCountByHttpQuery(self::BETWEEN.'[users_created_at]=2019-12-20 21:34:30|2020-01-07 00:21:03', 5);
     }
@@ -92,11 +92,6 @@ class FilterTest extends TestCase
         $this->assertCountByHttpQuery(self::EQ.'[users_created_at]=2019-12-04 07:21:44', 1);
         // multiple datetime
         $this->assertCountByHttpQuery(self::EQ.'[users_created_at]=2019-12-04 07:21:44|2019-12-04 23:19:41', 2);
-    }
-
-    public function testGetOrmQueryBuilder()
-    {
-        $this->assertTrue($this->getFilter()->getOrmQueryBuilder() instanceof  OrmQueryBuilder);
     }
 
     /**
@@ -401,74 +396,73 @@ class FilterTest extends TestCase
 
     public function testOrderBy()
     {
-        $filter = $this->getFilter();
-        parse_str('order[cards_expires_at]=asc', $args);
-        $request = new HttpDoctrineFilterRequest($args);
-        $filter->orderBy($request->order);
-        $this->assertFalse(strpos($filter->getOrmQueryBuilder()->getQuery()->getDQL(), 'ORDER BY cards.expiresAt') === false);
+        $filter = $this->createClearFilter();
+        $qb = $this->prepareQueryBuilderQuery();
+        $request = $this->createHttpDoctrineFilterRequest('order[cards_expires_at]=asc');
+        $query = $filter->apply($qb, $request);
+        $this->assertFalse(strpos($query->getDQL(), 'ORDER BY cards.expiresAt') === false);
     }
 
     public function testOrderByValueNotValid()
     {
-        $filter = $this->getFilter();
-        parse_str('order[users_id]=aww', $args);
-        $request = new HttpDoctrineFilterRequest($args);
         $this->expectException(InvalidArgumentException::class);
-        $filter->orderBy($request->order);
+        $this->createHttpDoctrineFilterRequest('order[users_id]=aww');
     }
 
     public function testSelectByAliasWithNotValidValue()
     {
-        $filter = $this->getFilter();
-        parse_str(self::EQ.'[users_id]=a|b&'.self::EQ.'[users_created_at]=2020-01-17|asd', $args);
-        $request = new HttpDoctrineFilterRequest($args);
+        $filter = $this->createClearFilter();
+        $qb = $this->prepareQueryBuilderQuery();
+        $request = $this->createHttpDoctrineFilterRequest(self::EQ.'[users_id]=a|b&'.self::EQ.'[users_created_at]=2020-01-17|asd');
+
         $this->expectException(ValidatorException::class);
-        $filter->selectBy($request->filter);
+        $filter->apply($qb, $request);
     }
 
     public function testSelectBy()
     {
-        $filter = $this->getFilter();
-        parse_str(self::EQ.'[users_id]=a|b', $args);
-        $request = new HttpDoctrineFilterRequest($args);
+        $filter = $this->createClearFilter();
+        $qb = $this->prepareQueryBuilderQuery();
+        $request = $this->createHttpDoctrineFilterRequest(self::EQ.'[users_id]=a|b');
+
         $this->expectException(ValidatorException::class);
-        $filter->selectBy($request->filter);
+        $filter->apply($qb, $request);
     }
 
     public function testSelectByNotValidFieldNameAlias()
     {
-        $filter = $this->getFilter();
-        parse_str(self::EQ.'[cards_foo]=1', $args);
-        $request = new HttpDoctrineFilterRequest($args);
+        $filter = $this->createClearFilter();
+        $qb = $this->prepareQueryBuilderQuery();
+        $request = $this->createHttpDoctrineFilterRequest(self::EQ.'[cards_foo]=1');
+
         $this->expectException(InvalidArgumentException::class);
-        $filter->selectBy($request->filter);
+        $filter->apply($qb, $request);
     }
 
     public function testSelectByValueNotValid()
     {
-        $filter = $this->getFilter();
-        parse_str(self::EQ.'[users_id]=aww', $args);
-        $request = new HttpDoctrineFilterRequest($args);
+        $filter = $this->createClearFilter();
+        $qb = $this->prepareQueryBuilderQuery();
+        $request = $this->createHttpDoctrineFilterRequest(self::EQ.'[users_id]=aww');
+
         $this->expectException(ValidatorException::class);
-        $filter->selectBy($request->filter);
+        $filter->apply($qb, $request);
     }
 
     public function testSelectNotAllowedAlias()
     {
-        $filter = $this->getFilter();
-        parse_str(self::EQ.'[foo_id]=1', $args);
-        $request = new HttpDoctrineFilterRequest($args);
+        $filter = $this->createClearFilter();
+        $qb = $this->prepareQueryBuilderQuery();
+        $request = $this->createHttpDoctrineFilterRequest(self::EQ.'[foo_id]=1');
+
         $this->expectException(InvalidArgumentException::class);
-        $filter->selectBy($request->filter);
+        $filter->apply($qb, $request);
     }
 
     public function testSelectNotAllowedMethod()
     {
-        $filter = $this->getFilter();
-        parse_str('filter[foo][users_id]=1', $args);
-        $request = new HttpDoctrineFilterRequest($args);
         $this->expectException(InvalidArgumentException::class);
-        $filter->selectBy($request->filter);
+        $this->createHttpDoctrineFilterRequest('filter[foo][users_id]=1');
     }
 
     public function testUserRepositoryFilter()
@@ -478,15 +472,15 @@ class FilterTest extends TestCase
 
     public function testMultipleViolation()
     {
-        $filter = $this->getFilter();
         $uri = self::EQ.'[phones_number]=foo&' // not valid number
             . self::EQ.'[users_email]=info&' // not valid email
             . self::EQ.'[users_id]=bar';  // not valid id
+        $filter = $this->createClearFilter();
+        $qb = $this->prepareQueryBuilderQuery();
+        $request = $this->createHttpDoctrineFilterRequest($uri);
 
-        parse_str($uri, $args);
-        $request = new HttpDoctrineFilterRequest($args);
         try {
-            $filter->selectBy($request->filter);
+            $filter->apply($qb, $request);
         } catch (ValidatorException $e) {
             $this->assertCount(3, json_decode($e->getMessage(), true));
         }

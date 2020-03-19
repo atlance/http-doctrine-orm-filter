@@ -7,7 +7,7 @@ namespace Atlance\HttpDoctrineFilter\Dto;
 use Atlance\HttpDoctrineFilter\Builder\QueryBuilder;
 use Webmozart\Assert\Assert;
 
-final class Field
+final class QueryField
 {
     /**
      * DQL expression.
@@ -122,6 +122,7 @@ final class Field
 
     public function __construct(string $snakeCaseExprMethod, string $class, string $tableAlias)
     {
+        Assert::oneOf($snakeCaseExprMethod, QueryBuilder::SUPPORTED_EXPRESSIONS);
         $this->snakeCaseExprMethod = $snakeCaseExprMethod;
         $this->isLike = in_array($snakeCaseExprMethod, ['like', 'not_like', 'ilike'], true);
         $exprMethod = lcfirst(str_replace('_', '', ucwords($snakeCaseExprMethod, '_')));

@@ -16,18 +16,6 @@ final class CacheProviderFacade
         $this->cacheProvider = $cacheProvider;
     }
 
-    public function getCacheProvider(): CacheProvider
-    {
-        return $this->cacheProvider;
-    }
-
-    public function setCacheProvider(CacheProvider $cacheProvider): self
-    {
-        $this->cacheProvider = $cacheProvider;
-
-        return $this;
-    }
-
     public function setNamespace(string $namespace): self
     {
         $this->cacheProvider->setNamespace($namespace);
@@ -42,16 +30,6 @@ final class CacheProviderFacade
             '&key='.$key;
 
         return [sha1($realCacheKey), $realCacheKey];
-    }
-
-    public function deleteCache(string $cacheKey): bool
-    {
-        return $this->cacheProvider->delete($cacheKey);
-    }
-
-    public function deleteAllCache(): bool
-    {
-        return $this->cacheProvider->deleteAll();
     }
 
     /**

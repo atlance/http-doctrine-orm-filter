@@ -6,11 +6,14 @@ namespace Atlance\HttpDoctrineFilter;
 
 use Atlance\HttpDoctrineFilter\Builder\QueryBuilder;
 use Atlance\HttpDoctrineFilter\Cache\CacheProviderFacade;
-use Atlance\HttpDoctrineFilter\Dto\Field;
+use Atlance\HttpDoctrineFilter\Dto\QueryConfiguration;
+use Atlance\HttpDoctrineFilter\Dto\QueryField;
 use Atlance\HttpDoctrineFilter\Validator\ValidatorFacade;
 use Doctrine\Common\Cache\ArrayCache;
 use Doctrine\Common\Cache\CacheProvider;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Query;
 use Doctrine\ORM\Query\Expr\From;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder as OrmQueryBuilder;
@@ -24,8 +27,8 @@ final class Filter
     public const CACHE_METADATA = 'metadata';
     public const CACHE_FIELD = 'field';
 
-    /** @var OrmQueryBuilder */
-    private $qb;
+    /** @var EntityManagerInterface */
+    private $em;
 
     /** @var ValidatorFacade */
     private $validator;
@@ -33,38 +36,21 @@ final class Filter
     /** @var CacheProviderFacade */
     private $cacher;
 
-    public function __construct(OrmQueryBuilder $qb, ValidatorInterface $validator, CacheProvider $cacheProvider = null)
+    /** @var OrmQueryBuilder */
+    private $currentQueryBuilder;
+
+    public function __construct(EntityManagerInterface $em, ValidatorInterface $validator, CacheProvider $cacheProvider = null)
     {
-        $this->qb = $qb;
+        $this->em = $em;
         $this->validator = new ValidatorFacade($validator);
         $this->cacher = (new CacheProviderFacade($cacheProvider ?? new ArrayCache()))
             ->setNamespace(self::CACHE_NAMESPACE);
+        $this->currentQueryBuilder = $this->createQueryBuilder();
     }
 
-    public function setOrmQueryBuilder(OrmQueryBuilder $qb): self
+    public function createQueryBuilder(): OrmQueryBuilder
     {
-        $this->qb = $qb;
-
-        return $this;
-    }
-
-    public function getOrmQueryBuilder(): OrmQueryBuilder
-    {
-        return $this->qb;
-    }
-
-    public function setCacheProvider(CacheProvider $cacheProvider): self
-    {
-        $this->cacher = (new CacheProviderFacade($cacheProvider))->setNamespace(self::CACHE_NAMESPACE);
-
-        return $this;
-    }
-
-    public function setValidator(ValidatorInterface $validator): self
-    {
-        $this->validator = new ValidatorFacade($validator);
-
-        return $this;
+        return new OrmQueryBuilder($this->em);
     }
 
     public function setValidationGroups(array $groups): self
@@ -74,18 +60,27 @@ final class Filter
         return $this;
     }
 
-    public function selectBy(array $httpFilterQuery): self
+    public function apply(OrmQueryBuilder $qb, QueryConfiguration $configuration): Query
     {
-        foreach ($httpFilterQuery as $exprMethod => $tablesAliasesAndColumnNames) {
-            foreach ($tablesAliasesAndColumnNames as $tableAliasAndColumnName => $values) {
+        return $this->setCurrentQueryBuilder($qb)
+            ->select($configuration->filter)
+            ->order($configuration->order)
+            ->getCurrentQueryBuilder()
+            ->getQuery();
+    }
+
+    private function select(array $conditions): self
+    {
+        foreach ($conditions as $expr => $aliases) {
+            foreach ($aliases as $alias => $values) {
                 [$cacheKey,] = $this->cacher->generateCacheKeys(
                     self::CACHE_FIELD,
-                    $this->qb->getDQL(),
-                    ['query' => "[{$exprMethod}][{$tableAliasAndColumnName}]"]
+                    $this->currentQueryBuilder->getDQL(),
+                    ['query' => "[{$expr}][{$alias}]"]
                 );
 
-                if (!($field = $this->cacher->fetchCache($cacheKey)) instanceof Field) {
-                    $field = $this->createField($tableAliasAndColumnName, $exprMethod);
+                if (!($field = $this->cacher->fetchCache($cacheKey)) instanceof QueryField) {
+                    $field = $this->createField($alias, $expr);
                 }
 
                 $this->createQuery($field, $values, $cacheKey);
@@ -99,20 +94,17 @@ final class Filter
         return $this;
     }
 
-    public function orderBy(array $tablesAliasesAndColumnNames): self
+    private function order(array $conditions): self
     {
-        foreach ($tablesAliasesAndColumnNames as $tableAliasAndColumnName => $value) {
-            if (!in_array($value, ['asc', 'desc'], true)) {
-                throw new \InvalidArgumentException('order expected "asc" or "desc"');
-            }
+        foreach ($conditions as $alias => $value) {
             $snakeCaseExprMethod = 'order_by';
             [$cacheKey,] = $this->cacher->generateCacheKeys(
                 self::CACHE_FIELD,
-                $this->qb->getDQL(),
-                ['query' => "[{$snakeCaseExprMethod}][{$tableAliasAndColumnName}]"]
+                $this->currentQueryBuilder->getDQL(),
+                ['query' => "[{$snakeCaseExprMethod}][{$alias}]"]
             );
-            if (!($field = $this->cacher->fetchCache($cacheKey)) instanceof Field) {
-                $field = $this->createField($tableAliasAndColumnName, $snakeCaseExprMethod);
+            if (!($field = $this->cacher->fetchCache($cacheKey)) instanceof QueryField) {
+                $field = $this->createField($alias, $snakeCaseExprMethod);
             }
 
             $this->createQuery($field, [$value], $cacheKey);
@@ -121,22 +113,22 @@ final class Filter
         return $this;
     }
 
-    private function createQuery(Field $field, array $values, string $cacheKey): void
+    private function createQuery(QueryField $field, array $values, string $cacheKey): void
     {
         if ($this->isValid($field, $values)) {
-            (new QueryBuilder($this->qb))->andWhere($field->setValues($values));
+            (new QueryBuilder($this->currentQueryBuilder))->andWhere($field->setValues($values));
             $this->cacher->saveCache($cacheKey, $field);
         }
     }
 
-    private function createField(string $tableAliasAndColumnName, string $snakeCaseExprMethod): Field
+    private function createField(string $tableAliasAndColumnName, string $expr): QueryField
     {
         foreach ($this->getAliasesAndMetadata() as $alias => $metadata) {
             if (strncasecmp($tableAliasAndColumnName, $alias.'_', mb_strlen($alias.'_')) === 0) {
                 $columnName = substr($tableAliasAndColumnName, mb_strlen($alias.'_'));
 
                 if (array_key_exists($columnName, $metadata->fieldNames)) {
-                    return (new Field($snakeCaseExprMethod, $metadata->getName(), $alias))
+                    return (new QueryField($expr, $metadata->getName(), $alias))
                         ->initProperties($metadata->getFieldMapping($metadata->getFieldForColumn($columnName)));
                 }
             }
@@ -150,10 +142,10 @@ final class Filter
      */
     private function getAliasesAndMetadata(): array
     {
-        [$cacheKey,] = $this->cacher->generateCacheKeys(self::CACHE_METADATA, $this->qb->getDQL());
+        [$cacheKey,] = $this->cacher->generateCacheKeys(self::CACHE_METADATA, $this->currentQueryBuilder->getDQL());
         if (!is_array($aliasesAndMetadata = $this->cacher->fetchCache($cacheKey))) {
             $aliasesAndMetadata = [];
-            foreach ($this->qb->getAllAliases() as $alias) {
+            foreach ($this->currentQueryBuilder->getAllAliases() as $alias) {
                 $metadata = $this->getMetadataByAlias($alias);
                 $aliasesAndMetadata[$alias] = $metadata;
             }
@@ -180,7 +172,7 @@ final class Filter
     private function getParts(): array
     {
         $parts = [];
-        $tmp = $this->qb->getDQLPart('join') + $this->qb->getDQLPart('from');
+        $tmp = $this->currentQueryBuilder->getDQLPart('join') + $this->currentQueryBuilder->getDQLPart('from');
         array_walk_recursive($tmp, function ($part) use (&$parts): void {array_push($parts, $part); });
         unset($tmp);
 
@@ -197,15 +189,15 @@ final class Filter
     {
         if (!class_exists($class = $partData instanceof From ? $partData->getFrom() : $partData->getJoin())) {
             $joinAlias = explode('.', $class)[1];
-            foreach ($this->qb->getRootEntities() as $rootEntity) {
-                $class = $this->qb->getEntityManager()->getClassMetadata($rootEntity)->getAssociationTargetClass($joinAlias);
+            foreach ($this->currentQueryBuilder->getRootEntities() as $rootEntity) {
+                $class = $this->currentQueryBuilder->getEntityManager()->getClassMetadata($rootEntity)->getAssociationTargetClass($joinAlias);
             }
         }
 
-        return $this->qb->getEntityManager()->getClassMetadata($class);
+        return $this->currentQueryBuilder->getEntityManager()->getClassMetadata($class);
     }
 
-    private function isValid(Field $field, array $values): bool
+    private function isValid(QueryField $field, array $values): bool
     {
         $exp = $field->getSnakeCaseExprMethod();
 
@@ -218,8 +210,20 @@ final class Filter
         return $this->validator->isValid();
     }
 
-    private function skipValidate(string $exprMethod): bool
+    private function skipValidate(string $exp): bool
     {
-        return in_array($exprMethod, ['is_null', 'is_not_null', 'like', 'ilike', 'not_like', 'between', 'order_by'], true);
+        return in_array($exp, ['is_null', 'is_not_null', 'like', 'ilike', 'not_like', 'between', 'order_by'], true);
+    }
+
+    private function getCurrentQueryBuilder(): OrmQueryBuilder
+    {
+        return $this->currentQueryBuilder;
+    }
+
+    private function setCurrentQueryBuilder(OrmQueryBuilder $qb): self
+    {
+        $this->currentQueryBuilder = $qb;
+
+        return $this;
     }
 }

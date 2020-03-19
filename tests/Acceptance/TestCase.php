@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Atlance\HttpDoctrineFilter\Test\Acceptance;
 
-use Atlance\HttpDoctrineFilter\Dto\HttpDoctrineFilterRequest;
+use Atlance\HttpDoctrineFilter\Dto\QueryConfiguration;
 use Atlance\HttpDoctrineFilter\Filter;
 use Atlance\HttpDoctrineFilter\Test\Builder\EntityManagerBuilder;
 use Atlance\HttpDoctrineFilter\Test\Model\Passport;
@@ -16,6 +16,7 @@ use Doctrine\Common\Cache\CacheProvider;
 use Doctrine\Common\Cache\MemcachedCache;
 use Doctrine\Common\Cache\RedisCache;
 use Doctrine\ORM\Query\Expr\Join;
+use Doctrine\ORM\QueryBuilder;
 use Memcached;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 use Redis;
@@ -33,55 +34,54 @@ abstract class TestCase extends BaseTestCase
 
     protected function assertCountByHttpQuery(string $uri, int $expectedCount)
     {
-        $filter = $this->getFilter();
-        parse_str($uri, $args);
-        $request = new HttpDoctrineFilterRequest($args);
-        $this->assertEquals(
-            $expectedCount,
-            $filter->selectBy($request->filter)
-                ->orderBy($request->order)
-                ->getOrmQueryBuilder()
-                ->setCacheable(true)
-                ->getQuery()
-                ->getSingleScalarResult()
-        );
+        $filter = $this->createClearFilter();
+        $qb = $this->prepareQueryBuilderQuery();
 
-        return $filter;
+        parse_str($uri, $args);
+        $request = new QueryConfiguration($args);
+
+        $this->assertEquals($expectedCount, $filter->apply($qb, $request)->getSingleScalarResult());
     }
 
-    protected function getFilter(): Filter
+    protected function prepareQueryBuilderQuery(): QueryBuilder
     {
         $filter = $this->createClearFilter();
-        $filter->getOrmQueryBuilder()
-            ->select('COUNT(DISTINCT(users.id))')
+        $qb = $filter->createQueryBuilder();
+        $qb->select('COUNT(DISTINCT(users.id))')
             ->from(User::class, 'users')
             ->leftJoin('users.cards', 'cards', Join::WITH)
             ->leftJoin('users.phones', 'phones', Join::WITH)
             ->leftJoin(Passport::class, 'passport', Join::WITH, 'users.id = passport.user');
 
-        return $filter;
+        return $qb;
     }
 
     protected function createClearFilter(): Filter
     {
-        $qb = (new EntityManagerBuilder())->getEntityManager()->createQueryBuilder();
+        $em = (new EntityManagerBuilder())->getEntityManager();
         $validator = Validation::createValidatorBuilder()->enableAnnotationMapping()->getValidator();
         $cacheProvider = $this->createCacheProviderInstance();
 
-        return (new Filter($qb, $validator, $cacheProvider))->setValidationGroups(['tests']);
+        return (new Filter($em, $validator, $cacheProvider))->setValidationGroups(['tests']);
     }
 
     protected function findByConditionUserRepositoryFilter(string $uri)
     {
         parse_str($uri, $args);
-        $request = new HttpDoctrineFilterRequest($args);
+
         /** @var UserRepository $userRepository */
         $userRepository = (new EntityManagerBuilder())
             ->getEntityManager()
             ->getRepository(User::class)
             ->setFilter($this->createClearFilter()); // without auto wiring =(
 
-        return $userRepository->findByConditions($request->toArray());
+        return $userRepository->findByConditions($args);
+    }
+
+    protected function createHttpDoctrineFilterRequest(string $uri)
+    {
+        parse_str($uri, $args);
+        return new QueryConfiguration($args);
     }
 
     protected function createCacheProviderInstance(): CacheProvider
