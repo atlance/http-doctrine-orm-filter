@@ -21,7 +21,7 @@
 В тестах можно более подробно посмотреть все эти процессы.
 
 ---
-[one of the simple usage examples](./docs/simple-example.md)
+[use case](./docs/simple-example.md)
 
 <p align="center">
     <img src="http://i.piccy.info/i9/fcbc05cfe68c7b45f7f36f77e1addff5/1579918903/199482/1358755/ezgif_3_038bb81d8352.jpg" alt="atlance/http-doctrine-filter" />

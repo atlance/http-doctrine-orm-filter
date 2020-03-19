@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Atlance\HttpDoctrineFilter\Test\Acceptance;
 
-use Atlance\HttpDoctrineFilter\Dto\HttpDoctrineFilterRequest;
+use Atlance\HttpDoctrineFilter\Dto\HttpQuery;
 use Atlance\HttpDoctrineFilter\Filter;
 use Atlance\HttpDoctrineFilter\Test\Builder\EntityManagerBuilder;
 use Atlance\HttpDoctrineFilter\Test\Model\Passport;
@@ -34,14 +34,13 @@ abstract class TestCase extends BaseTestCase
     protected function assertCountByHttpQuery(string $uri, int $expectedCount)
     {
         $filter = $this->getFilter();
-        parse_str($uri, $args);
-        $request = new HttpDoctrineFilterRequest($args);
+        $httpQuery = $this->getQuery($uri);
+
         $this->assertEquals(
             $expectedCount,
-            $filter->selectBy($request->filter)
-                ->orderBy($request->order)
+            $filter->selectBy($httpQuery)
+                ->orderBy($httpQuery)
                 ->getOrmQueryBuilder()
-                ->setCacheable(true)
                 ->getQuery()
                 ->getSingleScalarResult()
         );
@@ -74,14 +73,13 @@ abstract class TestCase extends BaseTestCase
     protected function findByConditionUserRepositoryFilter(string $uri)
     {
         parse_str($uri, $args);
-        $request = new HttpDoctrineFilterRequest($args);
         /** @var UserRepository $userRepository */
         $userRepository = (new EntityManagerBuilder())
             ->getEntityManager()
             ->getRepository(User::class)
             ->setFilter($this->createClearFilter()); // without auto wiring =(
 
-        return $userRepository->findByConditions($request->toArray());
+        return $userRepository->findByConditions(new HttpQuery($args));
     }
 
     protected function createCacheProviderInstance(): CacheProvider
@@ -111,5 +109,11 @@ abstract class TestCase extends BaseTestCase
         }
 
         return new ArrayCache();
+    }
+
+    protected function getQuery(string $uri)
+    {
+        parse_str($uri, $args);
+        return new HttpQuery($args);
     }
 }

@@ -56,6 +56,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use Atlance\HttpDoctrineFilter\Dto\HttpQuery;
 use Atlance\HttpDoctrineFilter\Filter;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Persistence\ManagerRegistry;
@@ -77,11 +78,11 @@ class AnyRepository extends ServiceEntityRepository
     }
     
         /**
-         * @param array $conditions
+         * @param HttpQuery $httpQuery
          *
          * @return array
          */
-        public function findByConditions(array $conditions = [])
+        public function findByConditions(HttpQuery $httpQuery)
         {
             $qb = $this->_em->createQueryBuilder();
             $qb->select(['any'])
@@ -92,8 +93,8 @@ class AnyRepository extends ServiceEntityRepository
             
             return $this->httpDoctrineFilter->setOrmQueryBuilder($qb)
                 ->setValidationGroups(['any'])
-                ->selectBy($conditions['filter'] ?? [])
-                ->orderBy($conditions['order'] ?? [])
+                ->selectBy($httpQuery)
+                ->orderBy($httpQuery)
                 ->getOrmQueryBuilder()
                 ->getQuery()
                 ->getResult();
@@ -110,7 +111,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use Atlance\HttpDoctrineFilter\Dto\HttpDoctrineFilterRequest;
+use Atlance\HttpDoctrineFilter\Dto\HttpQuery;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -122,9 +123,7 @@ class AnyController extends AbstractController
     public function filterAction(Request $request, AnyRepository $repository): Response
         {
             return $this->render('any-template.html.twig', [
-                'items' => $repository->findByConditions(
-                    (new HttpDoctrineFilterRequest($request->query->all()))->toArray()
-                ),
+                'items' => $repository->findByConditions(new HttpQuery($request->query->all()))
             ]);
         }
 }

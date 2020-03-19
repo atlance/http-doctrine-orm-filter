@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Atlance\HttpDoctrineFilter\Dto;
 
-class HttpDoctrineFilterRequest extends AbstractDto
+use Atlance\HttpDoctrineFilter\Builder\QueryBuilder;
+use Webmozart\Assert\Assert;
+
+class HttpQuery extends AbstractDto
 {
     /** @var array */
     public $filter = [];
@@ -21,12 +24,12 @@ class HttpDoctrineFilterRequest extends AbstractDto
     public function setFilter(array $filters): self
     {
         foreach ($filters as $exp => $values) {
-            foreach ($values as $propertyAlias => $value) {
+            foreach ($values as $alias => $value) {
                 if (!array_key_exists($exp, $this->filter)) {
                     $this->filter[$exp] = [];
                 }
-
-                $this->filter[$exp][$propertyAlias] = explode('|', $value);
+                Assert::oneOf($exp, QueryBuilder::SUPPORTED_EXPRESSIONS);
+                $this->filter[$exp][$alias] = explode('|', $value);
             }
         }
 
@@ -35,8 +38,9 @@ class HttpDoctrineFilterRequest extends AbstractDto
 
     public function setOrder(array $orders): self
     {
-        foreach ($orders as $exp => $order) {
-            $this->order[$exp] = $order;
+        foreach ($orders as $alias => $direction) {
+            Assert::oneOf($direction, ['asc', 'desc']);
+            $this->order[$alias] = $direction;
         }
 
         return $this;

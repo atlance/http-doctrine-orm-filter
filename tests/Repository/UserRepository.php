@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Atlance\HttpDoctrineFilter\Test\Repository;
 
+use Atlance\HttpDoctrineFilter\Dto\HttpQuery;
 use Atlance\HttpDoctrineFilter\Filter;
 use Atlance\HttpDoctrineFilter\Test\Model\Passport;
 use Doctrine\ORM\EntityRepository;
@@ -23,7 +24,7 @@ class UserRepository extends EntityRepository
         return $this;
     }
 
-    public function findByConditions(array $conditions = [])
+    public function findByConditions(HttpQuery $httpQuery)
     {
         $qb = $this->createQueryBuilder('users')
             ->select('COUNT(DISTINCT(users.id))')
@@ -33,8 +34,8 @@ class UserRepository extends EntityRepository
         ;
 
         return $this->filter->setOrmQueryBuilder($qb)
-            ->selectBy($conditions['filter'] ?? [])
-            ->orderBy($conditions['order'] ?? [])
+            ->selectBy($httpQuery)
+            ->orderBy($httpQuery)
             ->getOrmQueryBuilder()
             ->getQuery()
             ->getSingleScalarResult()

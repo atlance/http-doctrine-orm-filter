@@ -11,6 +11,23 @@ use Webmozart\Assert\Assert;
 
 final class QueryBuilder
 {
+    public const SUPPORTED_EXPRESSIONS = [
+        'eq',
+        'neq',
+        'gt',
+        'gte',
+        'ilike',
+        'in',
+        'not_in',
+        'is_null',
+        'is_not_null',
+        'like',
+        'not_like',
+        'lt',
+        'lte',
+        'between',
+    ];
+
     /** @var OrmQueryBuilder */
     private $qb;
 

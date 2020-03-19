@@ -7,6 +7,7 @@ namespace Atlance\HttpDoctrineFilter;
 use Atlance\HttpDoctrineFilter\Builder\QueryBuilder;
 use Atlance\HttpDoctrineFilter\Cache\CacheProviderFacade;
 use Atlance\HttpDoctrineFilter\Dto\Field;
+use Atlance\HttpDoctrineFilter\Dto\HttpQuery;
 use Atlance\HttpDoctrineFilter\Validator\ValidatorFacade;
 use Doctrine\Common\Cache\ArrayCache;
 use Doctrine\Common\Cache\CacheProvider;
@@ -53,13 +54,6 @@ final class Filter
         return $this->qb;
     }
 
-    public function setCacheProvider(CacheProvider $cacheProvider): self
-    {
-        $this->cacher = (new CacheProviderFacade($cacheProvider))->setNamespace(self::CACHE_NAMESPACE);
-
-        return $this;
-    }
-
     public function setValidator(ValidatorInterface $validator): self
     {
         $this->validator = new ValidatorFacade($validator);
@@ -74,18 +68,14 @@ final class Filter
         return $this;
     }
 
-    public function selectBy(array $httpFilterQuery): self
+    public function selectBy(HttpQuery $httpQuery): self
     {
-        foreach ($httpFilterQuery as $exprMethod => $tablesAliasesAndColumnNames) {
-            foreach ($tablesAliasesAndColumnNames as $tableAliasAndColumnName => $values) {
-                [$cacheKey,] = $this->cacher->generateCacheKeys(
-                    self::CACHE_FIELD,
-                    $this->qb->getDQL(),
-                    ['query' => "[{$exprMethod}][{$tableAliasAndColumnName}]"]
-                );
+        foreach ($httpQuery->filter as $exp => $aliases) {
+            foreach ($aliases as $alias => $values) {
+                [$cacheKey,] = $this->cacher->generateCacheKeys(self::CACHE_FIELD, $this->qb->getDQL(), ['query' => "[{$exp}][{$alias}]"]);
 
                 if (!($field = $this->cacher->fetchCache($cacheKey)) instanceof Field) {
-                    $field = $this->createField($tableAliasAndColumnName, $exprMethod);
+                    $field = $this->createField($alias, $exp);
                 }
 
                 $this->createQuery($field, $values, $cacheKey);
@@ -99,23 +89,19 @@ final class Filter
         return $this;
     }
 
-    public function orderBy(array $tablesAliasesAndColumnNames): self
+    public function orderBy(HttpQuery $httpQuery): self
     {
-        foreach ($tablesAliasesAndColumnNames as $tableAliasAndColumnName => $value) {
-            if (!in_array($value, ['asc', 'desc'], true)) {
-                throw new \InvalidArgumentException('order expected "asc" or "desc"');
-            }
-            $snakeCaseExprMethod = 'order_by';
+        foreach ($httpQuery->order as $alias => $direction) {
             [$cacheKey,] = $this->cacher->generateCacheKeys(
                 self::CACHE_FIELD,
                 $this->qb->getDQL(),
-                ['query' => "[{$snakeCaseExprMethod}][{$tableAliasAndColumnName}]"]
+                ['query' => "['order_by'][{$alias}]"]
             );
             if (!($field = $this->cacher->fetchCache($cacheKey)) instanceof Field) {
-                $field = $this->createField($tableAliasAndColumnName, $snakeCaseExprMethod);
+                $field = $this->createField($alias, 'order_by');
             }
 
-            $this->createQuery($field, [$value], $cacheKey);
+            $this->createQuery($field, [$direction], $cacheKey);
         }
 
         return $this;
@@ -129,14 +115,14 @@ final class Filter
         }
     }
 
-    private function createField(string $tableAliasAndColumnName, string $snakeCaseExprMethod): Field
+    private function createField(string $tableAliasAndColumnName, string $exp): Field
     {
         foreach ($this->getAliasesAndMetadata() as $alias => $metadata) {
             if (strncasecmp($tableAliasAndColumnName, $alias.'_', mb_strlen($alias.'_')) === 0) {
                 $columnName = substr($tableAliasAndColumnName, mb_strlen($alias.'_'));
 
                 if (array_key_exists($columnName, $metadata->fieldNames)) {
-                    return (new Field($snakeCaseExprMethod, $metadata->getName(), $alias))
+                    return (new Field($exp, $metadata->getName(), $alias))
                         ->initProperties($metadata->getFieldMapping($metadata->getFieldForColumn($columnName)));
                 }
             }
@@ -218,8 +204,8 @@ final class Filter
         return $this->validator->isValid();
     }
 
-    private function skipValidate(string $exprMethod): bool
+    private function skipValidate(string $exp): bool
     {
-        return in_array($exprMethod, ['is_null', 'is_not_null', 'like', 'ilike', 'not_like', 'between', 'order_by'], true);
+        return in_array($exp, ['is_null', 'is_not_null', 'like', 'ilike', 'not_like', 'between', 'order_by'], true);
     }
 }
