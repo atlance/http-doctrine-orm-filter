@@ -10,33 +10,37 @@
 </p>
 
 ---
-Что это вообще за пакет? \
-Нууу ... Этот пакет позваляет не думать о фильтрах в `GET` запросах.
+What a package is it?
+---
+Well, this is the package that allow us do not worry about filters in GET requests.
 
-Нам не нужно будет проверять какие там существуют/отсутствуют параметры, нормальное ли значение у параметров, например 
-`www.example.com/foo?filter[users_id]=string` а у нас `user.id` это `int`, неговоря уже о том что этот пакет не только проверяет допустимость типизации, но и валидирует на основании `Symfony\Component\Validator\Constraints` (учитывая группы валидации) и возвращает адекватный ответ, помимо этого кэширует всё это дело.
+We won't need to check what parameters exist and have they valid type or not anymore. For example url is `www.example.com/foo?filter[users_id]=string` but we defined user.id as int. This package will check typization, make validation on base of `Symfony\Component\Validator\Constraints` (with consideration of group of validation), return suitable response and cache it as well.
 
-И всё это в динамике - не описывая какие-то конкретные сущности, случаи, не придумывая велосипед с названием параметров и тд.
+All of this is happened under the hood, we do not need to handle it explicitly.
 
-По сути он оборачивает `Doctrine\ORM\QueryBuilder` и `Symfony\Component\Validator\Validator\ValidatorInterface` \
-и пока всех всё не устроит выкидывает или `InvalidArgumentException` или `Symfony\Component\Validator\Exception\ValidatorException` и всё это до запроса в БД. \
-Фильтр нарочно не делает сам запрос в БД, он просто применяет фильтр и мы всегда можем получить обратно свой `Doctrine\ORM\QueryBuilder` - продолжить с ним работу до формирования итогового запроса.
+It wraps `Doctrine\ORM\QueryBuilder` and `Symfony\Component\Validator\Validator\ValidatorInterface` \
+and throws  `InvalidArgumentException` or `Symfony\Component\Validator\Exception\ValidatorException`
+until pass throw validation was made. It happens before any request to DB.
 
-В тестах можно более подробно посмотреть все эти процессы.
+Filter does not make any request to DB by design. It just apply filter and we always can take our `Doctrine\ORM\QueryBuilder` and continue our work with it as we want.
+
+Let’s look at some details below.
+
+[one of the simple usage example](./docs/simple-example.md)
 
 ---
-# Как этим пользоваться?
+# How to use it?
 
-Допустим у нас есть такая база данных
+For example we have DB like this.
 <p align="center">
     <img src="http://i.piccy.info/i9/9b1b8c13e1c512fe0822e0e7bd44c463/1599819842/37931/1395885/db.png" alt="atlance/http-doctrine-filter" />
 </p>
 
-и мы хотим иметь возможность фильтровать по всему агрегату `User`, соответственно в нашем репозиории (любом другом сервисе) мы должны сделать 2 вещи:
-+ Подключить сам фильтр `Atlance\HttpDoctrineFilter\Filter`. Например так:
+and we want to have possibility to filter all aggregate of  User. For this we need to do two things:
++ To Add `Atlance\HttpDoctrineFilter\Filter`. You can do it like this:
 ```php
-use Atlance\HttpDoctrineFilter\Filter;
-use Doctrine\ORM\EntityRepository;
+  use Atlance\HttpDoctrineFilter\Filter;
+  use Doctrine\ORM\EntityRepository;
 
 class UserRepository extends EntityRepository
 {
@@ -50,8 +54,7 @@ class UserRepository extends EntityRepository
     }
 }
 ```
-
-+ Подготовить сам запрос (например у нас какая-то статистика на количество пользователей по фильтру):
++ To prepare request (as example we have request for some statistic on amount of users filtered for some parameters)
 ```php
 use Atlance\HttpDoctrineFilter\Dto\QueryConfiguration;
 use Atlance\HttpDoctrineFilter\Filter;
@@ -83,43 +86,45 @@ class UserRepository extends EntityRepository
     }
 }
 ```
-
-под "подготовить" речь идёт о `join`-ах, т.е. всё что в `join`-ах и естественно в `from` будет иметь возможность учавствовать в фильтрации на предмет следующих функций:
+All aliases of tables in request can be applied in filtering. To use it we need to know how to make HTTP request. \
+For example:
+- `from(User::class, 'users')` - alias `users`
+- `leftJoin('users.cards', 'cards', Join::WITH)` - alias `cards` \
+next by use of “_” we add property \
+example: `created_at` … as result we have something like this - `users_created_at`
 
 | expr | sql equivalent |
 | ----------- | ---------- |
-| `eq` | `=` |
-| `neq` | `<>` |
-| `gt` | `>` |
-| `gte` | `>=` |
-| `lt` | `<` |
-| `lte` | `=<` |
-| `in` | `IN()` |
-| `not_in` | `NOT IN()` |
-| `is_null` | `IS NULL` |
-| `is_not_null` | `IS NOT NULL` |
-| `like` | `LIKE` |
-| `not_like` | `NOT LIKE()` |
-| `ilike` | `ILIKE()` |
-| `between` | `BETWEEN()` |
+| eq | = |
+| neq | <> |
+| gt | > |
+| gte | >= |
+| lt | < |
+| lte | =< |
+| in | IN() |
+| not_in | NOT IN() |
+| is_null | IS NULL |
+| is_not_null | IS NOT NULL |
+| like | LIKE |
+| not_like | NOT LIKE() |
+| ilike | ILIKE() |
+| between | BETWEEN() |
 
-Значения переданные в эти функции могут быть множественными.
+Values that was passed to this functions can be multiple.
 
-Возникает вопрос:
-так что же передавать и в какой форме в этот самый `array $conditions = []`
+In `$conditions = []` we have all `HTTP` query (`?filter[expr][table_column]=any`)
 
-Ответ:
 ```php
 use Symfony\Component\HttpFoundation\Request;
 
-$request->query->all()
+$request->query->all();
 ```
 
-`HTTP query` в формате: `?filter[expr][table_column]=any`
+`HTTP query in form of: ?filter[expr][table_column]=any`
 
-Если взять изложенную выше конструкцию базы и подготовленного запроса в сервисе, то у нас на примере `expr eq` получается: \
-`HTTP query`: `?filter[eq][users_id]=1|2|3&filter[eq][cards_available]=1&filter[eq][cards_balance]=24760.21` \
-Эквивалентно `SQL`
+If we take DB described above and prepared request in service, than we have (in example of `expr` `eq`): \
+`HTTP query: ?filter[eq][users_id]=1|2|3&filter[eq][cards_available]=1&filter[eq][cards_balance]=24760.21` \
+It’s like `SQL` query:
 ```sql
 SELECT COUNT(DISTINCT (u0_.id)) AS sclr_0 FROM users u0_
     LEFT JOIN users_cards u2_ ON u0_.id = u2_.user_id
@@ -128,12 +133,10 @@ SELECT COUNT(DISTINCT (u0_.id)) AS sclr_0 FROM users u0_
     LEFT JOIN passports p4_ ON (u0_.id = p4_.user_id)
 WHERE (u0_.id = 1 OR u0_.id = 2 OR u0_.id = 3) AND b1_.available = 1 AND b1_.balance = 24760.21
 ```
+We can make any request to DB by using `expr`. There is only restriction by length of HTTP request. \
+There also is `ORDER BY`, but we should use it in a way like ...`&order[cards_expires_at]=asc`.
 
-Т.е. по сути мы не ограничены в составлении запросов к БД через представленные `expr`, за исключением максимально допустимой длинны `HTTP` запроса `:)`
-
-Кроме этого существует и `ORDER BY`, но уже не через `filter[expr]` а просто как `...&order[cards_expires_at]=asc` например.
-
-Ещё один рабочий вариант с пагинацией:
+Another example of using pagination:
 ```php
 use Atlance\HttpDoctrineFilter\Dto\QueryConfiguration;
 use Atlance\HttpDoctrineFilter\Filter;
@@ -175,55 +178,56 @@ class UserRepository extends EntityRepository
 }
 ```
 ---
-## А что там на счет валидации?
-
-Допустим наш `User` выглядит частично так:
+## What is about validation?
+For example we have User looks like this:
 ```php
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * @ORM\Table(name="users")
- */
+* @ORM\Table(name="users")
+  */
 class User
 {
-    /**
-     * @var int
-     *
-     * @ORM\Id
-     * @ORM\Column(type="integer")
-     * @ORM\GeneratedValue(strategy="AUTO")
-     *
-     * @Assert\Type(type="integer", groups={"tests"})
-     */
+   /**
+    * @var int
+    *
+    * @ORM\Id
+    * @ORM\Column(type="integer")
+    * @ORM\GeneratedValue(strategy="AUTO")
+    *
+    * @Assert\Type(type="integer", groups={"tests"})
+    */
     private $id;
 
-    /**
-     * @var \DateTimeImmutable
-     *
-     * @ORM\Column(name="created_at", type="datetime")
-     *
-     * @Assert\DateTime(format="Y-m-d H:i:s", groups={"tests"})
-     */
+   /**
+    * @var \DateTimeImmutable
+    *
+    * @ORM\Column(name="created_at", type="datetime")
+    *
+    * @Assert\DateTime(format="Y-m-d H:i:s", groups={"tests"})
+    */
     private $createdAt;
 
-    /**
-     * @var string
-     *
-     * @ORM\Column(type="string", name="email", length=180, unique=true, nullable=true)
-     *
-     * @Assert\Email(groups={"tests"})
-     * @Assert\Length(min=10, max=50, groups={"tests"})
-     */
+   /**
+    * @var string
+    *
+    * @ORM\Column(type="string", name="email", length=180, unique=true, nullable=true)
+    *
+    * @Assert\Email(groups={"tests"})
+    * @Assert\Length(min=10, max=50, groups={"tests"})
+    */
     private $email;
 }
 ```
-То, при HTTP запросе он будет ещё и проверять на допустимость на основании `Symfony\Component\Validator\Constraints`.
-Так же фильтр располагает возможностью передавать группы валидаций.
+
+It will also validate on the base of `Symfony\Component\Validator\Constraints` during `HTTP` request.
+Filter allows to make group of validations.
+`Filter::setValidationGroups`.
 
 ---
 
-## А что там на счет кеширования?
+## What is about cache?
 
-На конструктор фильтра передаётся  `Doctrine\Common\Cache\CacheProvider` интерфейс. \
-В дефолтном состоянии это `Doctrine\Common\Cache\ArrayCache`.
+Interface of `Doctrine\Common\Cache\CacheProvider` will pass to constructor of filter. \
+It’s set to `Doctrine\Common\Cache\ArrayCache` by default.
