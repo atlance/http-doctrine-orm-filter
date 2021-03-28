@@ -2,7 +2,7 @@
 Get started:
 
 ```
-composer req atlance/http-doctrine-filter
+composer req atlance/http-doctrine-orm-filter
 ```
 
 Register as service:
@@ -19,7 +19,7 @@ services:
             - [ addServer, ['api-memcached', 11211]]
 # < Cache -------------------------------------------------------------------
 # > Http Doctrine Filter ----------------------------------------------------
-    Atlance\HttpDoctrineFilter\Filter:
+    Atlance\HttpDoctrineOrmFilter\Filter:
         arguments:
             - '@doctrine.orm.entity_manager'
             - '@validator'
@@ -60,6 +60,7 @@ class Any
 ```
 
 DI Service(autowiring) and prepare the join aliases before filtering:
+
 ```php
 <?php
 
@@ -69,7 +70,7 @@ use App\Entity\AnyEntity;
 use App\Entity\FooEntity;
 use App\Entity\BarEntity;
 use App\Entity\BazEntity;
-use Atlance\HttpDoctrineFilter\Dto\QueryConfiguration;
+use Atlance\HttpDoctrineOrmFilter\Dto\Configuration;
 use Doctrine\ORM\Query\Expr\Join;
 use Knp\Component\Pager\Pagination\PaginationInterface;
 
@@ -93,7 +94,7 @@ class AnyFetcher
             ->leftJoin(BarEntity::class, 'bar', Join::WITH)
             ->leftJoin(BazEntity::class, 'baz', Join::WITH);
 
-        return $this->paginator->paginate($this->filter->apply($qb, new QueryConfiguration($conditions)), $page, $size);
+        return $this->paginator->paginate($this->filter->apply($qb, new Configuration($conditions)), $page, $size);
     }
 }
 ```
@@ -108,7 +109,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Fetcher\AnyFetcher;
-use Atlance\HttpDoctrineFilter\Dto\HttpDoctrineFilterRequest;
+use Atlance\HttpDoctrineOrmFilter\Dto\HttpDoctrineOrmFilterRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -141,4 +142,4 @@ where: \
 
 this http request equivalent sql: `WHERE any.id = 1 OR any.id = 2 ORDER BY any.id ASC`
 
-[other here](./../tests/Acceptance/FilterTest.php)
+[other here](../tests/Acceptance/FilterTest.php)

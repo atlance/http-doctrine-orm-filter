@@ -2,33 +2,42 @@
 
 declare(strict_types=1);
 
-namespace Atlance\HttpDoctrineFilter\Test\Builder;
+namespace Atlance\HttpDoctrineOrmFilter\Test\Builder;
 
-use Doctrine\ORM\EntityManager as ORMEntityManager;
+use Doctrine\Common\Cache\Cache;
+use Doctrine\ORM\Configuration;
+use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\Setup;
 
-class EntityManagerBuilder
+final class EntityManagerBuilder
 {
-    private $em;
+    private array $metadataPth = [__DIR__ . '/../../tests/Model'];
+    private bool $isDevMode = true;
+    private ?string $proxyDir = null;
+    private ?Cache $cache = null;
+    private bool $useSimpleAnnotationReader = false;
+    private static array $staticConnection;
+    private static Configuration $staticConfig;
 
     public function __construct()
     {
-        $isDevMode = true;
-        $proxyDir = null;
-        $cache = null;
-        $useSimpleAnnotationReader = false;
-        $config = Setup::createAnnotationMetadataConfiguration([__DIR__.'/../Model'], $isDevMode, $proxyDir, $cache, $useSimpleAnnotationReader);
+        self::$staticConfig = Setup::createAnnotationMetadataConfiguration(
+            $this->metadataPth,
+            $this->isDevMode,
+            $this->proxyDir,
+            $this->cache,
+            $this->useSimpleAnnotationReader
+        );
 
-        $connect = [
+        self::$staticConnection = [
             'driver' => 'pdo_sqlite',
             'path' => __DIR__.'/db.sqlite',
         ];
-        $this->em = ORMEntityManager::create($connect, $config);
     }
 
-    public function getEntityManager(): EntityManagerInterface
+    public static function build(array $connection = null, Configuration $config = null): EntityManagerInterface
     {
-        return $this->em;
+        return EntityManager::create($connection ?? self::$staticConnection, $config ?? self::$staticConfig);
     }
 }

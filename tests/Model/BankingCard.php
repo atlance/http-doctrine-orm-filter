@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Atlance\HttpDoctrineFilter\Test\Model;
+namespace Atlance\HttpDoctrineOrmFilter\Test\Model;
 
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -57,74 +57,4 @@ class BankingCard
      * @ORM\GeneratedValue(strategy="AUTO")
      */
     private $id;
-
-    public function getBalance(): float
-    {
-        return $this->balance;
-    }
-
-    public function getBankName(): string
-    {
-        return $this->bankName;
-    }
-
-    public function getCreatedAt(): \DateTime
-    {
-        return $this->createdAt;
-    }
-
-    public function getExpiresAt(): \DateTime
-    {
-        return $this->expiresAt;
-    }
-
-    public function getId(): int
-    {
-        return $this->id;
-    }
-
-    public function isAvailable(): bool
-    {
-        return $this->available;
-    }
-
-    public function setAvailable(bool $available): self
-    {
-        $this->available = $available;
-
-        return $this;
-    }
-
-    public function setBalance(float $balance): self
-    {
-        $this->balance = $balance;
-
-        return $this;
-    }
-
-    public function setBankName(string $bankName): self
-    {
-        $this->bankName = $bankName;
-
-        return $this;
-    }
-
-    public function setCreatedAt(\DateTime $createdAt): self
-    {
-        $this->createdAt = $createdAt;
-
-        return $this;
-    }
-
-    public function setExpiresAt(\DateTime $expiresAt): void
-    {
-        $this->expiresAt = $expiresAt;
-    }
-
-    public function setId(string $id): self
-    {
-        $this->id = $id;
-
-        return $this;
-    }
 }

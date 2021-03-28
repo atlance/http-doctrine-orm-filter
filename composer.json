@@ -19,44 +19,46 @@
         }
     ],
     "require": {
-        "php": "^7.4",
-        "doctrine/orm": "^2",
-        "symfony/validator": "^5.0",
-        "webmozart/assert": "^1.6"
+        "php": "^8.0",
+        "doctrine/orm": "^2.7",
+        "symfony/validator": "^5.2",
+        "webmozart/assert": "^1.9"
     },
     "require-dev": {
-        "phpstan/extension-installer": "^1.0",
+        "phpstan/extension-installer": "^1.1",
         "phpstan/phpstan": "^0.12.8",
         "phpstan/phpstan-deprecation-rules": "^0.12.2",
         "phpstan/phpstan-phpunit": "^0.12.6",
         "phpstan/phpstan-strict-rules": "^0.12.2",
-        "phpunit/phpunit": "^8.5",
-        "vimeo/psalm": "^3.8"
+        "phpunit/phpunit": "^9.5",
+        "vimeo/psalm": "^4.3"
     },
     "autoload": {
         "psr-4": {
-            "Atlance\\HttpDoctrineFilter\\": "src"
+            "Atlance\\HttpDoctrineOrmFilter\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Atlance\\HttpDoctrineFilter\\Test\\": "tests"
+            "Atlance\\HttpDoctrineOrmFilter\\Test\\": "tests"
         }
     },
     "scripts": {
-        "test": "vendor/bin/phpunit --testsuite=http-doctrine-filter",
-        "phpstan": "vendor/bin/phpstan analyse src -c phpstan.neon --level max --no-progress",
+        "test": "XDEBUG_MODE=coverage ./vendor/bin/phpunit --testsuite=http-doctrine-orm-filter",
+        "phpstan": "./vendor/bin/phpstan analyse -c phpstan.neon src tests --level 7 --no-progress --debug",
         "psalm": "vendor/bin/psalm --shepherd",
         "all": [
-            "@test",
             "@phpstan",
-            "@psalm"
+            "@psalm",
+            "@test"
         ]
     },
     "config": {
+        "optimize-autoloader": true,
+        "preferred-install": {
+            "*": "dist"
+        },
         "sort-packages": true,
-        "platform": {
-            "php": "7.4"
-        }
+        "process-timeout": 0
     }
 }
