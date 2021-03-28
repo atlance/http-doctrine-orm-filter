@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Atlance\HttpDoctrineFilter\Test\Repository;
+namespace Atlance\HttpDoctrineOrmFilter\Test\Repository;
 
-use Atlance\HttpDoctrineFilter\Dto\QueryConfiguration;
-use Atlance\HttpDoctrineFilter\Filter;
-use Atlance\HttpDoctrineFilter\Test\Model\Passport;
-use Atlance\HttpDoctrineFilter\Test\Model\User;
+use Atlance\HttpDoctrineOrmFilter\Query\Configuration;
+use Atlance\HttpDoctrineOrmFilter\Filter;
+use Atlance\HttpDoctrineOrmFilter\Test\Model\Passport;
+use Atlance\HttpDoctrineOrmFilter\Test\Model\User;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Query\Expr\Join;
 
@@ -23,7 +23,7 @@ class UserRepository extends EntityRepository
         return $this;
     }
 
-    public function findByConditions(array $conditions = [])
+    public function findByConditions(array $conditions = []): mixed
     {
         $qb = $this->filter->createQueryBuilder()
             ->select('COUNT(DISTINCT(users.id))')
@@ -33,6 +33,6 @@ class UserRepository extends EntityRepository
             ->leftJoin(Passport::class, 'passport', Join::WITH, 'users.id = passport.user')
         ;
 
-        return $this->filter->apply($qb, new QueryConfiguration($conditions))->getSingleScalarResult();
+        return $this->filter->apply($qb, new Configuration($conditions))->getQuery()->getSingleScalarResult();
     }
 }

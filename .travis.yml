@@ -1,27 +1,22 @@
-services:
-  - memcached
-
 env:
   global:
-    - CC_TEST_REPORTER_ID=a4fdc51a212ea6cfe24014ac770ed05d7e81b890db28e6c43227367878462778
-    - GIT_COMMITTED_AT=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then git log -1 --pretty=format:%ct; else git log -1 --skip 1 --pretty=format:%ct; fi)
+    - CC_TEST_REPORTER_ID=38e521fe65e6e6bed425c2706043a5978be4a5de3bb5117a118fa5f6ee2df336
 
 language: php
 
 php:
-  - 7.4
+  - 8.0
 
 before_script:
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
-  - echo "extension = memcached.so" >> ~/.phpenv/versions/7.4/etc/php.ini
 
 install:
   - composer install
 
 script:
-  - composer test
-  - composer psalm
-  - composer phpstan
-  - if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then ./cc-test-reporter after-build --coverage-input-type clover --exit-code $TRAVIS_TEST_RESULT; fi
+  - composer all
+
+after_script:
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT

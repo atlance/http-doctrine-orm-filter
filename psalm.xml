@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <psalm
-    totallyTyped="false"
+    totallyTyped="true"
     resolveFromConfigFile="true"
+    cacheDirectory="var/cache"
+    allowPhpStormGenerics="true"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns="https://getpsalm.org/schema/config"
     xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
@@ -39,11 +41,10 @@
         <MissingReturnType errorLevel="info" />
         <MissingPropertyType errorLevel="info" />
         <InvalidDocblock errorLevel="info" />
-        <MisplacedRequiredParam errorLevel="info" />
 
         <PropertyNotSetInConstructor>
             <errorLevel type="suppress">
-                <file name="src/Dto/QueryField.php" />
+                <file name="src/Query/Field.php" />
             </errorLevel>
         </PropertyNotSetInConstructor>
 
