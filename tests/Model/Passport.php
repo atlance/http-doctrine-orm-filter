@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Atlance\HttpDoctrineFilter\Test\Model;
+namespace Atlance\HttpDoctrineOrmFilter\Test\Model;
 
 use Doctrine\ORM\Mapping as ORM;
 
@@ -31,33 +31,8 @@ class Passport
     /**
      * @var User
      *
-     * @ORM\OneToOne(targetEntity="Atlance\HttpDoctrineFilter\Test\Model\User", cascade={"persist"})
+     * @ORM\OneToOne(targetEntity="Atlance\HttpDoctrineOrmFilter\Test\Model\User", cascade={"persist"})
      * @ORM\JoinColumn(name="user_id", referencedColumnName="id", nullable=false)
      */
     private $user;
-
-    public function getId(): int
-    {
-        return $this->id;
-    }
-
-    public function getSn(): string
-    {
-        return $this->serialNumber;
-    }
-
-    public function getUser(): User
-    {
-        return $this->user;
-    }
-
-    public function setSn(string $sn): void
-    {
-        $this->serialNumber = $sn;
-    }
-
-    public function setUser(User $user): void
-    {
-        $this->user = $user;
-    }
 }

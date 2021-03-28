@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Atlance\HttpDoctrineFilter\Dto;
+namespace Atlance\HttpDoctrineOrmFilter\Query;
 
-use Atlance\HttpDoctrineFilter\Builder\QueryBuilder;
 use Webmozart\Assert\Assert;
 
-final class QueryField
+final class Field
 {
     /**
      * DQL expression.
@@ -122,11 +121,11 @@ final class QueryField
 
     public function __construct(string $snakeCaseExprMethod, string $class, string $tableAlias)
     {
-        Assert::oneOf($snakeCaseExprMethod, QueryBuilder::SUPPORTED_EXPRESSIONS);
+        Assert::oneOf($snakeCaseExprMethod, Builder::SUPPORTED_EXPRESSIONS);
         $this->snakeCaseExprMethod = $snakeCaseExprMethod;
         $this->isLike = in_array($snakeCaseExprMethod, ['like', 'not_like', 'ilike'], true);
         $exprMethod = lcfirst(str_replace('_', '', ucwords($snakeCaseExprMethod, '_')));
-        Assert::methodExists(QueryBuilder::class, $exprMethod, "method \"{$exprMethod}\" not allowed");
+        Assert::methodExists(Builder::class, $exprMethod, "method \"{$exprMethod}\" not allowed");
         $this->exprMethod = $exprMethod;
         $this->class = $class;
         $this->tableAlias = $tableAlias;
@@ -179,14 +178,18 @@ final class QueryField
         return count($this->values);
     }
 
-    public function getDqlParameter(): string
+    public function generateParameter(null | string | int $i = null): string
     {
-        return "{$this->getTableAlias()}_{$this->getColumnName()}";
+        return null === $i
+            ? ":{$this->getTableAlias()}_{$this->getColumnName()}"
+            : ":{$this->getTableAlias()}_{$this->getColumnName()}_{$i}";
     }
 
-    public function getDqlPropertyFullPath(): string
+    public function getPropertyPath(bool $isOrm = true): string
     {
-        return "{$this->getTableAlias()}.{$this->getFieldName()}";
+        return true === $isOrm
+            ? "{$this->getTableAlias()}.{$this->getFieldName()}"
+            : "{$this->getTableAlias()}.{$this->getColumnName()}";
     }
 
     public function isLike(): bool
@@ -196,6 +199,10 @@ final class QueryField
 
     public function initProperties(array $properties): self
     {
+        /**
+         * @var string $property
+         * @var mixed $value
+         */
         foreach ($properties as $property => $value) {
             if (property_exists($this, $property)) {
                 $this->{$property} = $value;
