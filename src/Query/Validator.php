@@ -2,25 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Atlance\HttpDoctrineFilter\Validator;
+namespace Atlance\HttpDoctrineOrmFilter\Query;
 
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-final class ValidatorFacade
+/**
+ * @psalm-suppress MixedArgumentTypeCoercion
+ * @psalm-suppress MixedInferredReturnType
+ * @psalm-suppress MixedReturnStatement
+ */
+final class Validator
 {
-    /** @var ValidatorInterface */
-    private $validator;
-    /** @var array */
-    private $groups;
-    /** @var array */
-    private $buffer;
+    private array $buffer;
 
-    public function __construct(ValidatorInterface $validator, array $groups = [])
+    public function __construct(private ValidatorInterface $validator, private array $groups = [])
     {
-        $this->validator = $validator;
-        $this->groups = $groups;
         $this->buffer = [];
     }
 
@@ -31,17 +29,21 @@ final class ValidatorFacade
         return $this;
     }
 
+    /**
+     * @psalm-suppress MixedArgumentTypeCoercion
+     */
     public function validatePropertyValue(string $key, string $className, string $fieldName, array $fieldValues): array
     {
         $violations = [];
+        /** @var mixed $fieldValue */
         foreach ($fieldValues as $fieldValue) {
             $violationList = $this->validator->validatePropertyValue($className, $fieldName, $fieldValue, $this->groups);
             if ($violationList->count() > 0) {
-                if (!array_key_exists($key, $violations)) {
+                if (!\array_key_exists($key, $violations)) {
                     $violations[$key] = [];
                 }
 
-                array_push($violations[$key], $this->getViolations($violationList, $key));
+                $violations[$key][] = $this->getViolations($violationList, $key);
             }
         }
 
@@ -55,7 +57,7 @@ final class ValidatorFacade
 
     public function isValid(): bool
     {
-        return count($this->buffer) === 0;
+        return 0 === \count($this->buffer);
     }
 
     private function getViolations(ConstraintViolationListInterface $violationList, string $key): array
@@ -70,7 +72,7 @@ final class ValidatorFacade
                 'value' => $violation->getInvalidValue(),
             ];
 
-            array_push($violations, $violationEntry);
+            $violations[] = $violationEntry;
         }
 
         $this->setBufferViolationsByKey($key, $violations);
@@ -78,9 +80,13 @@ final class ValidatorFacade
         return $violations;
     }
 
+    /**
+     * @psalm-suppress MixedReturnStatement
+     * @psalm-suppress MixedInferredReturnType
+     */
     private function getBufferViolationsByKey(string $key): array
     {
-        return array_key_exists($key, $this->buffer) ? $this->buffer[$key] : [];
+        return \array_key_exists($key, $this->buffer) ? $this->buffer[$key] : [];
     }
 
     private function setBufferViolationsByKey(string $key, array $violations): void

@@ -1,14 +1,64 @@
 build:
   environment:
     php:
-      version: 7.4
-    memcached: true
+      version: 8.0.3
+  cache:
+    directories:
+      - vendor
+      - ~/.composer
+  nodes:
+    coverage:
+      tests:
+        override:
+          - php-scrutinizer-run
+          -
+            command: XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-text
+            coverage:
+              file: coverage/xml/clover.xml
+              format: clover
 
 filter:
-  excluded_paths: [tests/*]
+  paths:
+    - src/*
+
+tools:
+  php_analyzer:
+    enabled: true
+    config:
+      checkstyle:
+        enabled: true
+        naming:
+          isser_method_name: ^.*$
+          utility_class_name: ^.*$
+      doc_comment_fixes:
+        enabled: false
+      reflection_fixes:
+        enabled: false
+      use_statement_fixes:
+        enabled: false
+      simplify_boolean_return:
+        enabled: true
+  external_code_coverage: false
+  php_code_coverage: false
+  php_changetracking: true
+  php_cpd: true
+  php_cs_fixer: false
+  php_mess_detector: true
+  php_pdepend: true
+  sensiolabs_security_checker: true
+
+coding_style:
+  php:
+    spaces:
+      before_parentheses:
+        closure_definition: true
+      around_operators:
+        concatenation: false
 
 checks:
   php:
+    code_rating: true
+    duplication: true
     remove_extra_empty_lines: true
     remove_php_closing_tag: true
     remove_trailing_whitespace: true

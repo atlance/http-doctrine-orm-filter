@@ -2,19 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Atlance\HttpDoctrineFilter\Test\Acceptance;
+namespace Atlance\HttpDoctrineOrmFilter\Test\Acceptance;
 
-use Atlance\HttpDoctrineFilter\Dto\QueryConfiguration;
-use Atlance\HttpDoctrineFilter\Filter;
-use Atlance\HttpDoctrineFilter\Test\Builder\EntityManagerBuilder;
-use Atlance\HttpDoctrineFilter\Test\Model\Passport;
-use Atlance\HttpDoctrineFilter\Test\Model\User;
-use Atlance\HttpDoctrineFilter\Test\Repository\UserRepository;
+use Atlance\HttpDoctrineOrmFilter\Filter;
+use Atlance\HttpDoctrineOrmFilter\Query\Configuration;
+use Atlance\HttpDoctrineOrmFilter\Test\Builder\EntityManagerBuilder;
+use Atlance\HttpDoctrineOrmFilter\Test\Model\Passport;
+use Atlance\HttpDoctrineOrmFilter\Test\Model\User;
+use Atlance\HttpDoctrineOrmFilter\Test\Repository\UserRepository;
 use Doctrine\Common\Cache\ApcuCache;
 use Doctrine\Common\Cache\ArrayCache;
 use Doctrine\Common\Cache\CacheProvider;
 use Doctrine\Common\Cache\MemcachedCache;
 use Doctrine\Common\Cache\RedisCache;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Memcached;
@@ -24,23 +25,23 @@ use Symfony\Component\Validator\Validation;
 
 abstract class TestCase extends BaseTestCase
 {
-    private $filter;
+    private Filter $filter;
 
-    public function __construct($name = null, array $data = [], $dataName = '')
+    public function __construct(null | string $name = null, array $data = [], string $dataName = '')
     {
         parent::__construct($name, $data, $dataName);
         $this->filter = $this->createClearFilter();
     }
 
-    protected function assertCountByHttpQuery(string $uri, int $expectedCount)
+    protected function assertCountByHttpQuery(string $uri, int $expectedCount): void
     {
         $filter = $this->createClearFilter();
         $qb = $this->prepareQueryBuilderQuery();
 
         parse_str($uri, $args);
-        $request = new QueryConfiguration($args);
+        $request = new Configuration($args);
 
-        $this->assertEquals($expectedCount, $filter->apply($qb, $request)->getSingleScalarResult());
+        self::assertEquals($expectedCount, $filter->apply($qb, $request)->getQuery()->getSingleScalarResult());
     }
 
     protected function prepareQueryBuilderQuery(): QueryBuilder
@@ -58,35 +59,33 @@ abstract class TestCase extends BaseTestCase
 
     protected function createClearFilter(): Filter
     {
-        $em = (new EntityManagerBuilder())->getEntityManager();
+        $em = (new EntityManagerBuilder())::build();
         $validator = Validation::createValidatorBuilder()->enableAnnotationMapping()->getValidator();
         $cacheProvider = $this->createCacheProviderInstance();
 
         return (new Filter($em, $validator, $cacheProvider))->setValidationGroups(['tests']);
     }
 
-    protected function findByConditionUserRepositoryFilter(string $uri)
+    protected function findByConditionUserRepositoryFilter(string $uri): mixed
     {
         parse_str($uri, $args);
+        $repository = (
+            new UserRepository((new EntityManagerBuilder())::build(), new ClassMetadata(User::class))
+        )->setFilter($this->createClearFilter());
 
-        /** @var UserRepository $userRepository */
-        $userRepository = (new EntityManagerBuilder())
-            ->getEntityManager()
-            ->getRepository(User::class)
-            ->setFilter($this->createClearFilter()); // without auto wiring =(
-
-        return $userRepository->findByConditions($args);
+        return $repository->findByConditions($args);
     }
 
-    protected function createHttpDoctrineFilterRequest(string $uri)
+    protected function createHttpDoctrineOrmFilterRequest(string $uri): Configuration
     {
         parse_str($uri, $args);
-        return new QueryConfiguration($args);
+
+        return new Configuration($args);
     }
 
     protected function createCacheProviderInstance(): CacheProvider
     {
-        if (extension_loaded('memcached')) {
+        if (\extension_loaded('memcached')) {
             $memcached = new Memcached();
             $memcached->addServer('127.0.0.1', 11211);
 
@@ -96,7 +95,7 @@ abstract class TestCase extends BaseTestCase
             return $cacheProvider;
         }
 
-        if (extension_loaded('redis')) {
+        if (\extension_loaded('redis')) {
             $redis = new Redis();
             $redis->connect('127.0.0.1');
 
@@ -106,7 +105,7 @@ abstract class TestCase extends BaseTestCase
             return $cacheProvider;
         }
 
-        if (extension_loaded('apcu')) {
+        if (\extension_loaded('apcu')) {
             return new ApcuCache();
         }
 
