@@ -1,6 +1,6 @@
 {
-    "name": "atlance/http-doctrine-filter",
-    "homepage": "https://github.com/atlance/http-doctrine-filter",
+    "name": "atlance/http-doctrine-orm-filter",
+    "homepage": "https://github.com/atlance/http-doctrine-orm-filter",
     "license": "MIT",
     "description": "doctrine orm dynamic filter from http query and used symfony/validator for validation",
     "type": "library",
