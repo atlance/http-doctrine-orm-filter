@@ -28,10 +28,7 @@ services:
         arguments: ['@filter.cache_adapter']
 
     Atlance\HttpDoctrineOrmFilter\Filter:
-        arguments:
-            - '@doctrine.orm.entity_manager'
-            - '@validator'
-            - '@filter.cache'
+        arguments: ['@validator', '@filter.cache']
 # < Http Doctrine Filter ----------------------------------------------------
 
 ```
@@ -79,25 +76,32 @@ use App\Entity\FooEntity;
 use App\Entity\BarEntity;
 use App\Entity\BazEntity;
 use Atlance\HttpDoctrineOrmFilter\Dto\Configuration;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
 use Knp\Component\Pager\Pagination\PaginationInterface;
 
 final class AnyFetcher
 {
-    public function __construct(private Filter $filter, private PaginatorInterface $paginator)
-    {
+    public function __construct(
+        private EntityManagerInterface $em,
+        private Filter $filter,
+        private PaginatorInterface $paginator
+    ) {
     }
 
     public function list(array $conditions, int $page, int $size): PaginationInterface
     {
-        $qb = $this->filter->createQueryBuilder();
+        $qb = $this->em->createQueryBuilder();
         $qb->select(['any'])
             ->from(AnyEntity::class, 'any')
             ->leftJoin(FooEntity::class, 'foo', Join::WITH)
             ->leftJoin(BarEntity::class, 'bar', Join::WITH)
-            ->leftJoin(BazEntity::class, 'baz', Join::WITH);
+            ->leftJoin(BazEntity::class, 'baz', Join::WITH)
+        ;
 
-        return $this->paginator->paginate($this->filter->apply($qb, new Configuration($conditions)), $page, $size);
+        $this->filter->apply($qb, new Configuration($conditions));
+
+        return $this->paginator->paginate($qb, $page, $size);
     }
 }
 ```

@@ -25,6 +25,9 @@
         "webmozart/assert": "^1.9"
     },
     "require-dev": {
+        "ext-curl": "*",
+        "ext-dom": "*",
+        "ext-sqlite3": "*",
         "doctrine/annotations": "^1.13",
         "phpstan/extension-installer": "^1.1",
         "phpstan/phpstan": "^1.6",
@@ -46,8 +49,8 @@
         }
     },
     "scripts": {
-        "test": "XDEBUG_MODE=coverage ./vendor/bin/phpunit",
-        "phpstan": "./vendor/bin/phpstan analyse --no-progress",
+        "test": "XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-html coverage",
+        "phpstan": "vendor/bin/phpstan analyse --no-progress",
         "psalm": "vendor/bin/psalm --shepherd",
         "all": [
             "@phpstan",

@@ -6,3 +6,4 @@
 /phpstan.neon       export-ignore
 /psalm.xml          export-ignore
 /tests              export-ignore
+/storage            export-ignore

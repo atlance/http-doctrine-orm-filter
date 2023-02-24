@@ -28,15 +28,15 @@ class User
     /**
      * @ORM\Column(name="created_at", type="datetime")
      *
-     * @Assert\DateTime(format="Y-m-d H:i:s", groups={"tests"})
+     * @Assert\DateTime(format="Y-m-d H:i:s")
      */
     private \DateTimeImmutable $createdAt;
 
     /**
      * @ORM\Column(type="string", name="email", length=180, unique=true, nullable=true)
      *
-     * @Assert\Email(groups={"tests"})
-     * @Assert\Length(min=10, max=50, groups={"tests"})
+     * @Assert\Email()
+     * @Assert\Length(min=10, max=50)
      */
     private string $email;
 
@@ -45,14 +45,14 @@ class User
      * @ORM\Column(type="integer")
      * @ORM\GeneratedValue(strategy="AUTO")
      *
-     * @Assert\Type(type="integer", groups={"tests"})
+     * @Assert\Type(type="integer")
      */
     private int $id;
 
     /**
      * @ORM\Column(type="string", name="name", length=180, unique=true)
      *
-     * @Assert\Type(type="string", groups={"tests"})
+     * @Assert\Type(type="string")
      */
     private string $name;
 

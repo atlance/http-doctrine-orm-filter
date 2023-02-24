@@ -22,13 +22,6 @@ final class Validator
         $this->buffer = [];
     }
 
-    public function setGroups(array $groups): self
-    {
-        $this->groups = $groups;
-
-        return $this;
-    }
-
     /**
      * @psalm-suppress MixedArgumentTypeCoercion
      */

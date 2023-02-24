@@ -63,6 +63,7 @@ class UserRepository extends EntityRepository
 
     public function findByConditions(array $conditions = [])
     {
+        // prepare SQL query.
         $qb = $this->filter->createQueryBuilder()
             ->select('COUNT(DISTINCT(users.id))')
             ->from(User::class, 'users')
@@ -70,8 +71,10 @@ class UserRepository extends EntityRepository
             ->leftJoin('users.phones', 'phones', Join::WITH)
             ->leftJoin(Passport::class, 'passport', Join::WITH, 'users.id = passport.user')
         ;
-
-        return $this->filter->apply($qb, new Configuration($conditions))->getSingleScalarResult();
+        // apply filter.
+        $this->filter->apply($qb, new QueryConfiguration($conditions));
+        // return result.
+        return $qb->getQuery()->getSingleScalarResult();
     }
 }
 ```
@@ -107,6 +110,7 @@ In `$conditions = []` we have all `HTTP` query (`?filter[expr][table_column]=any
 use Symfony\Component\HttpFoundation\Request;
 
 $request->query->all();
+// or $request->request->all();
 ```
 
 `HTTP query in form of: ?filter[expr][table_column]=any`
@@ -155,6 +159,7 @@ class UserRepository extends EntityRepository
 
     public function fetch(array $conditions, int $page, int $size): PaginationInterface
     {
+        // prepare SQL query.
         $qb = $this->filter->createQueryBuilder()
             ->select('users')
             ->from(User::class, 'users')
@@ -162,8 +167,10 @@ class UserRepository extends EntityRepository
             ->leftJoin('users.phones', 'phones', Join::WITH)
             ->leftJoin(Passport::class, 'passport', Join::WITH, 'users.id = passport.user')
         ;
-
-        return $this->paginator->paginate($this->filter->apply($qb, new Configuration($conditions))->getQuery(), $page, $size);
+        // apply filter.
+        $this->filter->apply($qb, new QueryConfiguration($conditions));
+        // return result.
+        return $this->paginator->paginate($qb->getQuery(), $page, $size);
     }
 }
 ```
@@ -186,7 +193,7 @@ class User
     * @ORM\Column(type="integer")
     * @ORM\GeneratedValue(strategy="AUTO")
     *
-    * @Assert\Type(type="integer", groups={"tests"})
+    * @Assert\Type(type="integer")
     */
     private $id;
 
@@ -195,7 +202,7 @@ class User
     *
     * @ORM\Column(name="created_at", type="datetime")
     *
-    * @Assert\DateTime(format="Y-m-d H:i:s", groups={"tests"})
+    * @Assert\DateTime(format="Y-m-d H:i:s")
     */
     private $createdAt;
 
@@ -205,15 +212,13 @@ class User
     * @ORM\Column(type="string", name="email", length=180, unique=true, nullable=true)
     *
     * @Assert\Email(groups={"tests"})
-    * @Assert\Length(min=10, max=50, groups={"tests"})
+    * @Assert\Length(min=10, max=50)
     */
     private $email;
 }
 ```
 
 It will also validate on the base of `Symfony\Component\Validator\Constraints` during `HTTP` request.
-Filter allows to make group of validations.
-`Filter::setValidationGroups`.
 
 ---
 

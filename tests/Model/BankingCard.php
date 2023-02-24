@@ -46,7 +46,7 @@ class BankingCard
      *
      * @ORM\Column(name="expires_at", type="datetime")
      *
-     * @Assert\DateTime(format="Y-m-d H:i:s", groups={"tests"})
+     * @Assert\DateTime(format="Y-m-d H:i:s")
      */
     private $expiresAt;
     /**

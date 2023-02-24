@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Atlance\HttpDoctrineOrmFilter\Test\Acceptance;
 
+use Atlance\HttpDoctrineOrmFilter\Test\Factory\RequestFactory;
 use Symfony\Component\Validator\Exception\ValidatorException;
 
 final class FilterTest extends TestCase
@@ -49,6 +50,7 @@ final class FilterTest extends TestCase
     public function testBetweenNotEqualCount2Values(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::BETWEEN . '[users_id]=1|2|3', 3);
     }
 
@@ -114,6 +116,7 @@ final class FilterTest extends TestCase
     {
         // multiple integer
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::GTE . '[users_id]=1|2', 1);
     }
 
@@ -124,6 +127,7 @@ final class FilterTest extends TestCase
     {
         // multiple integer
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::GT . '[users_id]=1|2', 1);
     }
 
@@ -164,6 +168,7 @@ final class FilterTest extends TestCase
     public function testInSingleBooleanValue(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::IN . '[cards_available]=1', 0);
     }
 
@@ -173,6 +178,7 @@ final class FilterTest extends TestCase
     public function testInSingleDateTimeValue(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::IN . '[users_created_at]=2019-12-04 07:21:44', 24);
     }
 
@@ -182,6 +188,7 @@ final class FilterTest extends TestCase
     public function testInSingleIntegerValue(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::IN . '[passport_sn]=6762843688', 0);
     }
 
@@ -191,18 +198,21 @@ final class FilterTest extends TestCase
     public function testInSingleStringValue(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::IN . '[cards_bank_name]=Ермак', 0);
     }
 
     public function testInvalidMaxMinForBetweenDate(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::BETWEEN . '[users_created_at]=2020-01-01|2019-01-01', 0);
     }
 
     public function testInvalidMaxMinForBetweenInteger(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::BETWEEN . '[users_created_at]=2|1', 0);
     }
 
@@ -284,6 +294,7 @@ final class FilterTest extends TestCase
     {
         // multiple integer
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::LTE . '[users_id]=1|2', 1);
     }
 
@@ -294,6 +305,7 @@ final class FilterTest extends TestCase
     {
         // multiple integer
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::LT . '[users_id]=1|2', 1);
     }
 
@@ -334,6 +346,7 @@ final class FilterTest extends TestCase
     public function testNotInSingleBooleanValue(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::NOT_IN . '[cards_available]=1', 0);
     }
 
@@ -343,6 +356,7 @@ final class FilterTest extends TestCase
     public function testNotInSingleDateTimeValue(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::NOT_IN . '[users_created_at]=2019-12-04 07:21:44', 24);
     }
 
@@ -352,6 +366,7 @@ final class FilterTest extends TestCase
     public function testNotInSingleIntegerValue(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::NOT_IN . '[passport_sn]=6762843688', 0);
     }
 
@@ -361,6 +376,7 @@ final class FilterTest extends TestCase
     public function testNotInSingleStringValue(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+
         $this->assertCountByHttpQuery(self::NOT_IN . '[cards_bank_name]=Ермак', 0);
     }
 
@@ -387,78 +403,71 @@ final class FilterTest extends TestCase
 
     public function testOrderBy(): void
     {
-        $filter = $this->createClearFilter();
-        $qb = $this->prepareQueryBuilderQuery();
-        $request = $this->createHttpDoctrineOrmFilterRequest('order[cards_expires_at]=asc');
-        $query = $filter->apply($qb, $request);
-        $this->assertFalse(false === mb_strpos($query->getDQL(), 'ORDER BY cards.expiresAt'));
+        $uri = 'order[cards_expires_at]=asc';
+        $dql = $this->repository()->builderByConditions(RequestFactory::create($uri))->getDQL();
+
+        $this->assertFalse(false === mb_strpos($dql, 'ORDER BY cards.expiresAt'));
     }
 
     public function testOrderByValueNotValid(): void
     {
+        $uri = 'order[users_id]=aww';
         $this->expectException(\InvalidArgumentException::class);
-        $this->createHttpDoctrineOrmFilterRequest('order[users_id]=aww');
+
+        $this->fetch($uri);
     }
 
     public function testSelectByAliasWithNotValidValue(): void
     {
-        $filter = $this->createClearFilter();
-        $qb = $this->prepareQueryBuilderQuery();
-        $request = $this->createHttpDoctrineOrmFilterRequest(self::EQ . '[users_id]=a|b&' . self::EQ . '[users_created_at]=2020-01-17|asd');
-
+        $uri = self::EQ . '[users_id]=a|b&' . self::EQ . '[users_created_at]=2020-01-17|asd';
         $this->expectException(ValidatorException::class);
-        $filter->apply($qb, $request);
+
+        $this->fetch($uri);
     }
 
     public function testSelectBy(): void
     {
-        $filter = $this->createClearFilter();
-        $qb = $this->prepareQueryBuilderQuery();
-        $request = $this->createHttpDoctrineOrmFilterRequest(self::EQ . '[users_id]=a|b');
-
+        $uri = self::EQ . '[users_id]=a|b';
         $this->expectException(ValidatorException::class);
-        $filter->apply($qb, $request);
+
+        $this->fetch($uri);
     }
 
     public function testSelectByNotValidFieldNameAlias(): void
     {
-        $filter = $this->createClearFilter();
-        $qb = $this->prepareQueryBuilderQuery();
-        $request = $this->createHttpDoctrineOrmFilterRequest(self::EQ . '[cards_foo]=1');
-
+        $uri = self::EQ . '[cards_foo]=1';
         $this->expectException(\InvalidArgumentException::class);
-        $filter->apply($qb, $request);
+
+        $this->fetch($uri);
     }
 
     public function testSelectByValueNotValid(): void
     {
-        $filter = $this->createClearFilter();
-        $qb = $this->prepareQueryBuilderQuery();
-        $request = $this->createHttpDoctrineOrmFilterRequest(self::EQ . '[users_id]=aww');
-
+        $uri = self::EQ . '[users_id]=aww';
         $this->expectException(ValidatorException::class);
-        $filter->apply($qb, $request);
+
+        $this->fetch($uri);
     }
 
     public function testSelectNotAllowedAlias(): void
     {
-        $filter = $this->createClearFilter();
-        $qb = $this->prepareQueryBuilderQuery();
-        $request = $this->createHttpDoctrineOrmFilterRequest(self::EQ . '[foo_id]=1');
-
+        $uri = self::EQ . '[foo_id]=1';
         $this->expectException(\InvalidArgumentException::class);
-        $filter->apply($qb, $request);
+
+        $this->fetch($uri);
     }
 
     public function testSelectNotAllowedMethod(): void
     {
+        $uri = 'filter[foo][users_id]=1';
         $this->expectException(\InvalidArgumentException::class);
-        $this->createHttpDoctrineOrmFilterRequest('filter[foo][users_id]=1');
+
+        $this->fetch($uri);
     }
 
     public function testUserRepositoryFilter(): void
     {
-        $this->assertEquals($this->findByConditionUserRepositoryFilter(self::NOT_LIKE . '[users_created_at]=2020-01'), 15);
+        $this->assertEquals($this->fetch(self::NOT_LIKE . '[users_created_at]=2020-01'), 15);
     }
 
     public function testMultipleViolation(): void
@@ -466,12 +475,9 @@ final class FilterTest extends TestCase
         $uri = self::EQ . '[phones_number]=foo&' // not valid number
             . self::EQ . '[users_email]=info&' // not valid email
             . self::EQ . '[users_id]=bar';  // not valid id
-        $filter = $this->createClearFilter();
-        $qb = $this->prepareQueryBuilderQuery();
-        $request = $this->createHttpDoctrineOrmFilterRequest($uri);
 
         try {
-            $filter->apply($qb, $request);
+            $this->fetch($uri);
         } catch (ValidatorException $e) {
             $this->assertCount(3, json_decode($e->getMessage(), true));
         }

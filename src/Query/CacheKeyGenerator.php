@@ -6,9 +6,7 @@ namespace Atlance\HttpDoctrineOrmFilter\Query;
 
 final class CacheKeyGenerator
 {
-    /**
-     * @return array<string>
-     */
+    /** @return array<string> */
     public static function generate(string $key, string $query, array $params = []): array
     {
         $realCacheKey = $key . 'query=' . $query . '&params=' . hash('sha256', serialize($params));

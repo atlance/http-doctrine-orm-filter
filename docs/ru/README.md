@@ -1,5 +1,5 @@
 Что это вообще за пакет?  
-Нууу ... Этот пакет позваляет не думать о фильтрах в `GET` запросах.  
+Пакет позваляет не думать о фильтрах в http запросах.  
 
 Нам не нужно будет проверять какие там существуют/отсутствуют параметры, нормальное ли значение у параметров, например  
 `www.example.com/foo?filter[users_id]=string` а у нас `user.id` это `int`, неговоря уже о том что этот пакет не только проверяет допустимость типизации, но и валидирует на основании `Symfony\Component\Validator\Constraints` (учитывая группы валидации) и возвращает адекватный ответ, помимо этого кэширует всё это дело.
@@ -61,6 +61,7 @@ class UserRepository extends EntityRepository
 
     public function findByConditions(array $conditions = [])
     {
+        // Готовим запрос.
         $qb = $this->filter->createQueryBuilder()
             ->select('COUNT(DISTINCT(users.id))')
             ->from(User::class, 'users')
@@ -68,8 +69,10 @@ class UserRepository extends EntityRepository
             ->leftJoin('users.phones', 'phones', Join::WITH)
             ->leftJoin(Passport::class, 'passport', Join::WITH, 'users.id = passport.user')
         ;
-
-        return $this->filter->apply($qb, new QueryConfiguration($conditions))->getQuery()->getSingleScalarResult();
+        // Применяем фильтр.
+        $this->filter->apply($qb, new QueryConfiguration($conditions));
+        // Отдаем результат.
+        return $qb->getQuery()->getSingleScalarResult();
     }
 }
 ```
@@ -101,9 +104,11 @@ class UserRepository extends EntityRepository
 Ответ:
 ```php
 use Symfony\Component\HttpFoundation\Request;
-
-$request->query->all();
+/** @var Request */
+$request->query->all(); // или $request->request->all()
 ```
+
+В общем, массив с ключами и значениями.
 
 `HTTP query` в формате: `?filter[expr][table_column]=any`
 
@@ -152,6 +157,7 @@ class UserRepository extends EntityRepository
 
     public function fetch(array $conditions, int $page, int $size): PaginationInterface
     {
+        // Готовим запрос.
         $qb = $this->filter->createQueryBuilder()
             ->select('users')
             ->from(User::class, 'users')
@@ -159,8 +165,10 @@ class UserRepository extends EntityRepository
             ->leftJoin('users.phones', 'phones', Join::WITH)
             ->leftJoin(Passport::class, 'passport', Join::WITH, 'users.id = passport.user')
         ;
-
-        return $this->paginator->paginate($this->filter->apply($qb, new Configuration($conditions))->getQuery(), $page, $size);
+        // Применяем фильтр.
+        $this->filter->apply($qb, new QueryConfiguration($conditions));
+        // Отдаем результат.
+        return $this->paginator->paginate($qb->getQuery(), $page, $size);
     }
 }
 ```
@@ -184,7 +192,7 @@ class User
      * @ORM\Column(type="integer")
      * @ORM\GeneratedValue(strategy="AUTO")
      *
-     * @Assert\Type(type="integer", groups={"tests"})
+     * @Assert\Type(type="integer")
      */
     private $id;
 
@@ -193,7 +201,7 @@ class User
      *
      * @ORM\Column(name="created_at", type="datetime")
      *
-     * @Assert\DateTime(format="Y-m-d H:i:s", groups={"tests"})
+     * @Assert\DateTime(format="Y-m-d H:i:s")
      */
     private $createdAt;
 
@@ -202,14 +210,13 @@ class User
      *
      * @ORM\Column(type="string", name="email", length=180, unique=true, nullable=true)
      *
-     * @Assert\Email(groups={"tests"})
-     * @Assert\Length(min=10, max=50, groups={"tests"})
+     * @Assert\Email()
+     * @Assert\Length(min=10, max=50)
      */
     private $email;
 }
 ```
 То, при HTTP запросе он будет ещё и проверять на допустимость на основании `Symfony\Component\Validator\Constraints`.
-Так же фильтр располагает возможностью передавать группы валидаций.
 
 ---
 

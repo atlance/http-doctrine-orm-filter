@@ -26,7 +26,7 @@ class Phone
      * @var string
      *
      * @ORM\Column(type="string", name="number", length=15, unique=true)
-     * @Assert\Length(min=10, max=50, groups={"tests"})
+     * @Assert\Length(min=10, max=50)
      */
     private $number;
 

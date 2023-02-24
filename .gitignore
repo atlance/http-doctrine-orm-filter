@@ -2,7 +2,7 @@
 !/docs/
 !/src/
 !/tests/
-/tests/build/
+!/storage/
 
 !/.gitattributes
 !/.gitignore

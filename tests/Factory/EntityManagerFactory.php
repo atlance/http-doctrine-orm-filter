@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Atlance\HttpDoctrineOrmFilter\Test\Builder;
+namespace Atlance\HttpDoctrineOrmFilter\Test\Factory;
 
 use Doctrine\Common\Cache\Cache;
 use Doctrine\ORM\Configuration;
@@ -10,7 +10,7 @@ use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\Setup;
 
-final class EntityManagerBuilder
+final class EntityManagerFactory
 {
     private array $metadataPth = [__DIR__ . '/../../tests/Model'];
     private bool $isDevMode = true;
@@ -32,11 +32,11 @@ final class EntityManagerBuilder
 
         self::$staticConnection = [
             'driver' => 'pdo_sqlite',
-            'path' => __DIR__ . '/db.sqlite',
+            'path' => __DIR__ . '/../../storage/db.sqlite',
         ];
     }
 
-    public static function build(array $connection = null, Configuration $config = null): EntityManagerInterface
+    public static function create(array $connection = null, Configuration $config = null): EntityManagerInterface
     {
         return EntityManager::create($connection ?? self::$staticConnection, $config ?? self::$staticConfig);
     }
