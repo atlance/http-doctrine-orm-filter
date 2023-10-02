@@ -14,9 +14,9 @@ build:
         override:
           - php-scrutinizer-run
           -
-            command: XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-text
+            command: XDEBUG_MODE=coverage ./vendor/bin/paratest -c phpunit.xml.dist --colors --runner=WrapperRunner
             coverage:
-              file: coverage/xml/clover.xml
+              file: var/cache/coverage/xml/clover.xml
               format: clover
 
 filter:

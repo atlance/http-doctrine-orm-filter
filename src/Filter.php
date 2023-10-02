@@ -9,18 +9,28 @@ use Doctrine\ORM\Query\Expr;
 use Doctrine\ORM\Query\Expr\From;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
+use InvalidArgumentException;
 use Psr\SimpleCache\CacheInterface;
+use Psr\SimpleCache\InvalidArgumentException as PsrException;
 use Symfony\Component\Validator\Exception\ValidatorException;
 
 final class Filter
 {
+    /** @var string */
     public const CACHE_KEY_METADATA = 'metadata';
+
+    /** @var string */
     public const CACHE_KEY_FIELD = 'field';
 
-    public function __construct(private Query\Validator $validator, private ?CacheInterface $cache = null)
+    public function __construct(private readonly Query\Validator $validator, private readonly ?CacheInterface $cache = null)
     {
     }
 
+    /**
+     * @throws InvalidArgumentException if the query arguments logic exception
+     * @throws ValidatorException       if not valid the query arguments value
+     * @throws PsrException             if cache problem
+     */
     public function apply(QueryBuilder $qb, Query\Configuration $configuration): void
     {
         $this
@@ -28,6 +38,11 @@ final class Filter
             ->order($qb, $configuration->order);
     }
 
+    /**
+     * @throws InvalidArgumentException if the query arguments logic exception
+     * @throws ValidatorException       if not valid the query arguments value
+     * @throws PsrException             if cache problem
+     */
     private function select(QueryBuilder $qb, array $conditions): self
     {
         /**
@@ -43,7 +58,7 @@ final class Filter
                 [$cacheKey,] = Cache\Keys\Generator::generate(
                     self::CACHE_KEY_FIELD,
                     $qb->getDQL(),
-                    ['query' => "[{$expr}][{$alias}]"]
+                    ['query' => sprintf('[%s][%s]', $expr, $alias)]
                 );
                 /** @var Query\Field|null $field */
                 $field = $this->cache?->get($cacheKey);
@@ -62,7 +77,7 @@ final class Filter
         return $this;
     }
 
-    private function order(QueryBuilder $qb, array $conditions): self
+    private function order(QueryBuilder $qb, array $conditions): void
     {
         /**
          * @var string $alias
@@ -73,18 +88,16 @@ final class Filter
             [$cacheKey,] = Cache\Keys\Generator::generate(
                 self::CACHE_KEY_FIELD,
                 $qb->getDQL(),
-                ['query' => "[{$snakeCaseExprMethod}][{$alias}]"]
+                ['query' => sprintf('[%s][%s]', $snakeCaseExprMethod, $alias)]
             );
             /** @var Query\Field|null $field */
             $field = $this->cache?->get($cacheKey);
-            if (false === $field instanceof Query\Field) {
+            if (!$field instanceof Query\Field) {
                 $field = $this->createField($qb, $alias, $snakeCaseExprMethod);
             }
 
             $this->andWhere($qb, $field, [$value], $cacheKey);
         }
-
-        return $this;
     }
 
     private function andWhere(QueryBuilder $qb, Query\Field $field, array $values, string $cacheKey): void
@@ -116,6 +129,7 @@ final class Filter
      * @psalm-suppress MixedAssignment
      *
      * @return array<string, ClassMetadata>
+     * @throws PsrException
      */
     private function getAliasesAndMetadata(QueryBuilder $qb): array
     {
@@ -129,6 +143,7 @@ final class Filter
                     $aliasesAndMetadata[$alias] = $metadata;
                 }
             }
+
             $this->cache?->set($cacheKey, $aliasesAndMetadata);
         }
 
@@ -195,7 +210,7 @@ final class Filter
         }
 
         $this->validator->validatePropertyValue(
-            "[{$field->getExprMethod()}][{$field->generateParameter()}]",
+            sprintf('[%s][%s]', $field->getExprMethod(), $field->generateParameter()),
             $field->getClass(),
             $field->getFieldName(),
             $values

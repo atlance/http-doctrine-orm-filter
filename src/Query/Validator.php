@@ -17,7 +17,7 @@ final class Validator
 {
     private array $buffer = [];
 
-    public function __construct(private ValidatorInterface $validator, private array $groups = [])
+    public function __construct(private readonly ValidatorInterface $validator, private readonly array $groups = [])
     {
     }
 
@@ -49,7 +49,7 @@ final class Validator
 
     public function isValid(): bool
     {
-        return 0 === \count($this->buffer);
+        return [] === $this->buffer;
     }
 
     private function getViolations(ConstraintViolationListInterface $violationList, string $key): array

@@ -2,7 +2,7 @@ parameters:
     level: 8
     checkMissingIterableValueType: false
     checkGenericClassInNonGenericObjectType: false
-    tmpDir: var/analyze
+    tmpDir: var/cache/phpstan
     fileExtensions:
         - php
     paths:

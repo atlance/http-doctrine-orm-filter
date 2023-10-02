@@ -1,22 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" convertErrorsToExceptions="true" convertNoticesToExceptions="true" convertWarningsToExceptions="true" colors="true" processIsolation="true" stopOnFailure="true" backupGlobals="false" cacheResult="true" cacheResultFile="coverage/.phpunit.result.cache" bootstrap="vendor/autoload.php" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         colors="true"
+         processIsolation="true"
+         stopOnFailure="true"
+         backupGlobals="false"
+         cacheResult="true"
+         cacheDirectory="var/cache/.phpunit.cache"
+         cacheResultFile="var/cache/.phpunit.cache/.phpunit.result.cache"
+         bootstrap="vendor/autoload.php"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd">
   <coverage>
+    <report>
+      <clover outputFile="var/cache/coverage/xml/clover.xml"/>
+      <html outputDirectory="var/cache/coverage/html"/>
+    </report>
+  </coverage>
+  <testsuites>
+    <testsuite name="http-doctrine-orm-filter">
+      <directory>tests</directory>
+    </testsuite>
+  </testsuites>
+  <logging/>
+  <source>
     <include>
       <directory suffix=".php">src/</directory>
     </include>
     <exclude>
       <file>tests/bootstrap.php</file>
     </exclude>
-    <report>
-      <clover outputFile="coverage/xml/clover.xml"/>
-      <html outputDirectory="coverage/html"/>
-    </report>
-  </coverage>
-  <testsuites>
-    <testsuite name="http-doctrine-orm-filter">
-      <directory>tests</directory>
-      <directory>src</directory>
-    </testsuite>
-  </testsuites>
-  <logging/>
+  </source>
 </phpunit>

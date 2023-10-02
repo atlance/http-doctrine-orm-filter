@@ -30,15 +30,16 @@
         "ext-dom": "*",
         "ext-memcached": "^3.2",
         "ext-sqlite3": "*",
+        "brianium/paratest": "^7.2",
         "doctrine/annotations": "^2.0",
         "phpstan/extension-installer": "^1.1",
         "phpstan/phpstan": "^1.6",
         "phpstan/phpstan-deprecation-rules": "^1.0.0",
         "phpstan/phpstan-phpunit": "^1.1",
         "phpstan/phpstan-strict-rules": "^1.2",
-        "phpunit/phpunit": "^9.5",
+        "rector/rector": "^0.15.24",
         "symfony/cache": "^6.2",
-        "vimeo/psalm": "^4.3"
+        "vimeo/psalm": "^5.15"
     },
     "autoload": {
         "psr-4": {
@@ -51,7 +52,7 @@
         }
     },
     "scripts": {
-        "test": "XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-html coverage",
+        "test": "XDEBUG_MODE=coverage vendor/bin/paratest -c phpunit.xml.dist --colors --runner=WrapperRunner",
         "phpstan": "vendor/bin/phpstan analyse --no-progress",
         "psalm": "vendor/bin/psalm --shepherd",
         "analyze": ["@phpstan", "@psalm"],

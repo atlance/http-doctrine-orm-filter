@@ -10,114 +10,81 @@ final class Field
 {
     /**
      * DQL expression.
-     *
-     * @var string
      */
-    private $exprMethod;
+    private string $exprMethod;
 
     /**
      * Snake case DQL expression.
-     *
-     * @var string
      */
-    private $snakeCaseExprMethod;
+    private string $snakeCaseExprMethod;
 
     /**
      * The name of the Entity class.
-     *
-     * @var string
      */
-    private $class;
+    private string $class;
 
     /**
      * Table alias in current instance ORM\QueryBuilder.
-     *
-     * @var string
      */
-    private $tableAlias;
+    private string $tableAlias;
 
     /**
      * The name of the field in the Entity.
-     *
-     * @var string
      */
-    private $fieldName;
+    private string $fieldName;
 
     /**
      * The column name. Optional. Defaults to the field name.
-     *
-     * @var string|null
      */
-    private $columnName;
+    private string $columnName;
 
     /**
      * The type name of the mapped field. Can be one of Doctrine's mapping types or a custom mapping type.
-     *
-     * @var string
      */
-    private $type;
+    private string $type;
 
     /**
      * The database length of the column. Optional. Default value taken from the type.
-     *
-     * @var int|null
      */
-    private $length;
+    private ?int $length;
 
     /**
      * Marks the field as the primary key of the entity. Multiple fields of an entity can have the id attribute,
      * forming a composite key.
-     *
-     * @var bool|null
      */
-    private $id;
+    private ?bool $id;
 
     /**
      * Whether the column is nullable. Defaults to FALSE.
-     *
-     * @var bool|null
      */
-    private $nullable;
+    private ?bool $nullable;
 
     /**
      * The SQL fragment that is used when generating the DDL for the column.
-     *
-     * @var string|null
      */
-    private $columnDefinition;
+    private ?string $columnDefinition;
 
     /**
      * The precision of a decimal column. Only valid if the column type is decimal.
-     *
-     * @var int|null
      */
-    private $precision;
+    private ?int $precision;
 
     /**
      * The scale of a decimal column. Only valid if the column type is decimal.
-     *
-     * @var int|null
      */
-    private $scale;
+    private ?int $scale;
 
     /**
      * Whether a unique constraint should be generated for the column.
-     *
-     * @var bool|null
      */
-    private $unique;
+    private ?bool $unique;
 
     /**
      * Is LIKE operator?
-     *
-     * @var bool
      */
-    private $isLike;
+    private bool $isLike;
 
-    /**
-     * @var array
-     */
-    private $values;
+    private array $values = [];
 
     public function __construct(string $snakeCaseExprMethod, string $class, string $tableAlias)
     {
@@ -125,7 +92,7 @@ final class Field
         $this->snakeCaseExprMethod = $snakeCaseExprMethod;
         $this->isLike = \in_array($snakeCaseExprMethod, ['like', 'not_like', 'ilike'], true);
         $exprMethod = lcfirst(str_replace('_', '', ucwords($snakeCaseExprMethod, '_')));
-        Assert::methodExists(Builder::class, $exprMethod, "method \"{$exprMethod}\" not allowed");
+        Assert::methodExists(Builder::class, $exprMethod, sprintf('method "%s" not allowed', $exprMethod));
         $this->exprMethod = $exprMethod;
         $this->class = $class;
         $this->tableAlias = $tableAlias;
@@ -156,7 +123,7 @@ final class Field
         return $this->fieldName;
     }
 
-    public function getColumnName(): ?string
+    public function getColumnName(): string
     {
         return $this->columnName;
     }
@@ -181,15 +148,15 @@ final class Field
     public function generateParameter(null | string | int $i = null): string
     {
         return null === $i
-            ? ":{$this->getTableAlias()}_{$this->getColumnName()}"
-            : ":{$this->getTableAlias()}_{$this->getColumnName()}_{$i}";
+            ? sprintf(':%s_%s', $this->getTableAlias(), $this->getColumnName())
+            : sprintf(':%s_%s_%s', $this->getTableAlias(), $this->getColumnName(), $i);
     }
 
     public function getPropertyPath(bool $isOrm = true): string
     {
-        return true === $isOrm
-            ? "{$this->getTableAlias()}.{$this->getFieldName()}"
-            : "{$this->getTableAlias()}.{$this->getColumnName()}";
+        return $isOrm
+            ? sprintf('%s.%s', $this->getTableAlias(), $this->getFieldName())
+            : sprintf('%s.%s', $this->getTableAlias(), $this->getColumnName());
     }
 
     public function isLike(): bool

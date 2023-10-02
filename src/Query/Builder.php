@@ -12,16 +12,17 @@ use Webmozart\Assert\Assert;
 
 final class Builder
 {
+    /** @var string[] */
     public const SUPPORTED_EXPRESSIONS = [
         'eq',
         'neq',
         'gt',
         'gte',
-        'ilike',
         'in',
         'not_in',
         'is_null',
         'is_not_null',
+        'ilike',
         'like',
         'not_like',
         'lt',
@@ -30,7 +31,7 @@ final class Builder
         'order_by',
     ];
 
-    public function __construct(private QueryBuilder $qb)
+    public function __construct(private readonly QueryBuilder $qb)
     {
     }
 
@@ -65,7 +66,7 @@ final class Builder
             );
 
             $parts[] = $expr;
-            if (true === $field->isLike()) {
+            if ($field->isLike()) {
                 $this->qb->setParameter($field->generateParameter($i), "%{$value}%");
 
                 continue;
@@ -90,7 +91,7 @@ final class Builder
 
         $from = $field->generateParameter('from');
         $to = $field->generateParameter('to');
-        $this->qb->andWhere("{$field->getPropertyPath()} BETWEEN {$from} AND {$to}")
+        $this->qb->andWhere(sprintf('%s BETWEEN %s AND %s', $field->getPropertyPath(), $from, $to))
             ->setParameter($from, $min)
             ->setParameter($to, $max);
     }
@@ -124,8 +125,8 @@ final class Builder
          */
         foreach ($field->getValues() as $i => $value) {
             $parts[] = $this->qb->expr()->like(
-                "LOWER({$field->getPropertyPath()})",
-                "LOWER({$field->generateParameter($i)})"
+                sprintf('LOWER(%s)', $field->getPropertyPath()),
+                sprintf('LOWER(%s)', $field->generateParameter($i))
             );
 
             $this->qb->setParameter($field->generateParameter($i), mb_strtolower("%{$value}%"));

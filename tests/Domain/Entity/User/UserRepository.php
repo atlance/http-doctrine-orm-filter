@@ -7,37 +7,45 @@ namespace Atlance\HttpDoctrineOrmFilter\Test\Domain\Entity\User;
 use Atlance\HttpDoctrineOrmFilter\Filter;
 use Atlance\HttpDoctrineOrmFilter\Query\Configuration;
 use Atlance\HttpDoctrineOrmFilter\Test\Domain\Entity\Passport\Passport;
-use Atlance\HttpDoctrineOrmFilter\Test\Factory\InvalidArgumentExceptionFactory;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\NonUniqueResultException;
+use Doctrine\ORM\NoResultException;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
+use Psr\SimpleCache\InvalidArgumentException as PsrException;
+use Symfony\Component\Validator\Exception\ValidatorException;
+use InvalidArgumentException;
 
-class UserRepository extends EntityRepository
+/**
+ * @extends EntityRepository<User>
+ */
+final class UserRepository extends EntityRepository
 {
-    private ?Filter $filter = null;
-
-    public function setFilter(Filter $filter): self
+    public function __construct(EntityManagerInterface $em, private readonly Filter $filter)
     {
-        $this->filter = $filter;
-
-        return $this;
+        parent::__construct($em, new ClassMetadata(User::class));
     }
 
-    public function filter(): Filter
+    /**
+     * @throws InvalidArgumentException if the query arguments logic exception
+     * @throws ValidatorException       if not valid the query arguments value
+     * @throws PsrException             if cache problem
+     * @throws NoResultException        If the query returned no result.
+     * @throws NonUniqueResultException If the query result is not unique.
+     */
+    public function fetch(Configuration $conditions): mixed
     {
-        if (null === $this->filter) {
-            throw InvalidArgumentExceptionFactory::create(Filter::class);
-        }
-
-        return $this->filter;
+        return $this->buildQuery($conditions)->getQuery()->getSingleScalarResult();
     }
 
-    public function findByConditions(Configuration $conditions): mixed
-    {
-        return $this->builderByConditions($conditions)->getQuery()->getSingleScalarResult();
-    }
-
-    public function builderByConditions(Configuration $conditions): QueryBuilder
+    /**
+     * @throws InvalidArgumentException if the query arguments logic exception
+     * @throws ValidatorException       if not valid the query arguments value
+     * @throws PsrException             if cache problem
+     */
+    public function buildQuery(Configuration $conditions): QueryBuilder
     {
         $qb = $this->createQueryBuilder('users')
             ->select('COUNT(DISTINCT(users.id))')
@@ -46,7 +54,7 @@ class UserRepository extends EntityRepository
             ->leftJoin(Passport::class, 'passport', Join::WITH, 'users.id = passport.user')
         ;
 
-        $this->filter()->apply($qb, $conditions);
+        $this->filter->apply($qb, $conditions);
 
         return $qb;
     }
